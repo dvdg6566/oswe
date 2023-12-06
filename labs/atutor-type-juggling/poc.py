@@ -147,7 +147,7 @@ def create_atmail_user(session, ip, email_prefix, domain):
     r = session.post(target, data=data)
 
     if re.findall('Currently using.*of quota', r.text):
-        print("User creation sueccessful!")
+        print("User creation successful!")
         return s
     elif re.findall(f'{email_prefix}@{domain} already exists', r.text):
         print("User already exists!")
@@ -185,8 +185,20 @@ def atmail_user_login(atmail_ip, email_prefix, domain):
 
     if re.findall('WebAdmin Control Panel', r.text):
         raise Exception("Login unsuccessful!")
-    print("Login sueccessful!")
+    print("Login successful!")
     return s
+
+def get_email_code(session, ip):
+    target = f"http://{ip}/index.php/mail/viewmessage/index/compact/1/folder/INBOX/uniqueId/2/threadChildrenUIDs/false"
+    headers = {
+        'X-Requested-With': 'XMLHttpRequest'
+    }
+    r = session.post(target, headers=headers)
+
+    with open("out.txt", "w") as f:
+        f.write(r.text)
+    # text = BeautifulSoup(r.text, 'lxml')
+    print(r.text)
 
 def main():
     if len(sys.argv) != 3:
@@ -226,6 +238,6 @@ def main():
     atmail_user_session = atmail_user_login(atmail_ip, email_prefix, DOMAIN)
 
     get_email_code(atmail_user_session, atmail_ip)
-    
+
 if __name__ == '__main__':
     main()
