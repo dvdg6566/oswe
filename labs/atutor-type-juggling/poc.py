@@ -2,6 +2,7 @@ import sys, re, os, html
 import requests
 from bs4 import BeautifulSoup
 
+from time import sleep
 import hashlib, string, itertools
 from io import BytesIO
 import zipfile
@@ -385,6 +386,8 @@ def main():
     hijack_account(ip, email_prefix, DOMAIN, member_id)
 
     password_reminder(ip, email_prefix, DOMAIN)
+
+    sleep(60)
 
     atmail_user_session = atmail_user_login(atmail_ip, email_prefix, DOMAIN)
 
