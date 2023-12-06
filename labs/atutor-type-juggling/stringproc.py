@@ -1,15 +1,22 @@
-from bs4 import BeautifulSoup
-import re
-import html
 
-with open("out.txt", "r") as f:
-	text = f.read()
+def reset_password(ip, password_url):
+	params = {}
+	params_strings = password_url.split('?')[1].split('&')
+	for param in params_strings:
+		x = param.split('=')
+		if len(x) != 2: 
+			raise ("Invalid URL!")
+		params[x[0]] = x[1]
+	
+	data = {
+		'form_change': 'true',
+		'id': params['id'],
+		'g': params['g'],
+		'h': params['h'], 
+		'password': 'Bromine1!',
+		'password2': 'Bromine1!',
+		'submit': 'Submit'
+	}
+	
 
-url_matches = re.findall('(http:\\\/\\\/atutor\\\/ATutor\\\/password_reminder.php.*?)&lt;br', text)
-url = url_matches[0]
-print(url)
-
-url = html.unescape(url)
-url = url.replace('&amp;', '&')
-url = url.replace(r'\/', r'/')
-print(url)
+reset_password('x', 'http://atutor/ATutor/password_reminder.php?id=1&g=19697&h=67c5b839df049b9')

