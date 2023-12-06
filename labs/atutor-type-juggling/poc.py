@@ -1,4 +1,4 @@
-import sys, re, os
+import sys, re, os, html
 import requests
 from bs4 import BeautifulSoup
 import hashlib, string, itertools
@@ -148,7 +148,7 @@ def create_atmail_user(session, ip, email_prefix, domain):
 
     if re.findall('Currently using.*of quota', r.text):
         print("User creation successful!")
-        return s
+        return session
     elif re.findall(f'{email_prefix}@{domain} already exists', r.text):
         print("User already exists!")
         return session
@@ -189,16 +189,35 @@ def atmail_user_login(atmail_ip, email_prefix, domain):
     return s
 
 def get_email_code(session, ip):
-    target = f"http://{ip}/index.php/mail/viewmessage/index/compact/1/folder/INBOX/uniqueId/2/threadChildrenUIDs/false"
     headers = {
         'X-Requested-With': 'XMLHttpRequest'
     }
-    r = session.post(target, headers=headers)
+    print("Searching Atmail inbox......")
 
-    with open("out.txt", "w") as f:
-        f.write(r.text)
-    # text = BeautifulSoup(r.text, 'lxml')
-    print(r.text)
+    # Get the list of email IDs from teh folder messages
+    target = f"http://{ip}/index.php/mail/mail/listfoldermessages"
+    r = session.post(target, headers=headers)
+    indexes = re.findall(r'id=\\\"(\d+)\\\"', r.text)
+    
+    # Read email contents for each email
+    for index in indexes:
+        target = f"http://{ip}/index.php/mail/viewmessage/index/compact/1/folder/INBOX/uniqueId/{index}/threadChildrenUIDs/false"
+        
+        r = session.post(target, headers=headers)
+        
+        # Use regex to find PHP link        
+        url_matches = re.findall('(http:\\\/\\\/atutor\\\/ATutor\\\/password_reminder.php.*?)&lt;br', r.text)
+        if len(url_matches) == 0: continue
+        url = url_matches[0]
+
+        # Escape characters
+        url = html.unescape(url)
+        url = url.replace('&amp;', '&')
+        url = url.replace(r'\/', r'/')
+        print(f"Found URL: {url}")
+        return url
+
+    raise Exception("No valid password reset URL found!")
 
 def main():
     if len(sys.argv) != 3:
@@ -237,7 +256,9 @@ def main():
 
     atmail_user_session = atmail_user_login(atmail_ip, email_prefix, DOMAIN)
 
-    get_email_code(atmail_user_session, atmail_ip)
+    password_url = get_email_code(atmail_user_session, atmail_ip)
+
+
 
 if __name__ == '__main__':
     main()
