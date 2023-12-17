@@ -46,7 +46,6 @@ def extract_data(ip, inj):
     return output
 
 def get_code (domain, id, creation_date):
-    count = 0
     print("Searching for valid email......")
     
     for prefix_length in range(1, 5):
