@@ -232,10 +232,10 @@ def reset_password(ip, password_url):
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
     }
     s.headers.update(headers)
-    proxies = {
-        'http': 'http://127.0.0.1:8080'
-    }
-    s.proxies.update(proxies)
+    # proxies = {
+    #     'http': 'http://127.0.0.1:8080'
+    # }
+    # s.proxies.update(proxies)
 
     r = s.get(password_url)
 
