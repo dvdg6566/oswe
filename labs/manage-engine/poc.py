@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 
 def write_to_file(ip, content, filePath):
+	print(f"Writing contents into {filePath}......")
 	s = requests.Session()
 
 	headers = {
