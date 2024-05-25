@@ -114,6 +114,15 @@ def login(ip, username, password):
 	}
 	s.proxies.update(proxies)
 
+	headers = {
+		'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0',
+		'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+	}
+	s.headers.update(headers)
+
+	target = f"http://{ip}:8080/opencrx-core-CRX/ObjectInspectorServlet?loginFailed=false"
+	r = s.get(target)
+
 	target = f"http://{ip}:8080/opencrx-core-CRX/j_security_check"
 	data = {
 		"j_username": username,
