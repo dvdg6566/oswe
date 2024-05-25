@@ -129,15 +129,50 @@ def login(ip, username, password):
 		"j_password": password
 	}
 
-	r = s.post(target, data=data)
+	r = s.post(target, data=data, allow_redirects=True)
 	fail_element = "Login failed - Please try again"
 	if fail_element in r.text:
 		print("Login failure")
 		exit(0)
 
 	print(f"Succesfull logged in as user {username}")
-	return s
+	print("Clearing notifications")
 
+	url = re.findall(r"window.location.href=\'(.*?)\';", r.text)[0]
+	requestId = re.findall(r"\?requestId=(.*?)&", url)[0]
+	target = f"http://{ip}:8080/opencrx-core-CRX/ObjectInspectorServlet"
+	target += f"?requestId={requestId}"
+	target += "&event=15"
+	target += "&parameter=pane*(0)*reference*(0)*referenceName*(alert)"
+
+	r = s.get(target)
+	resp = r.text
+	# with open("resp.html", "w") as f:
+	# 	f.write(r.text)
+
+	notifications = re.findall(r"xri://@openmdx\*org\.opencrx\.kernel\.home1/provider/CRX/segment/Standard/userHome/admin-Standard/alert/(.*?)\)", resp)
+	notifications = list(set(notifications))
+	print("Found notification IDs: ", notifications)
+
+	parameterList = ""
+	for notification in notifications:
+		parameterList += f"xri*(xri://@openmdx*org.opencrx.kernel.home1/provider/CRX/segment/Standard/userHome/admin-Standard/alert/{notification})"
+		parameterList += ' \n'
+
+	data = {
+		"requestId.submit": (None, requestId),
+		"reference": (None, 0),
+		"pane": (None, 0),
+		"size": (None, ""),
+		"event.submit": (None, 28),
+		"parameter.list": (None, parameterList)
+	}
+
+	target = f"http://{ip}:8080/opencrx-core-CRX/ObjectInspectorServlet"
+	r = s.post(target, files=data)
+	print("Cleared notifications")
+
+	return s
 
 def main():
 	if len(sys.argv) != 2:
