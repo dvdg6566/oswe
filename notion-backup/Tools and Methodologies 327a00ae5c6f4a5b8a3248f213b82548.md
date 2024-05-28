@@ -38,6 +38,7 @@ We can sometimes transfer the source code from our client to Kali.
 
 ```bash
 rsync -azP <user>@<ip>:/home/<path> ./
+scp -r <user>@<ip>:/home/path .
 ```
 
 ## .NET
@@ -148,3 +149,5 @@ Some debuggers support debugging process running on remote system.
 [PHP](Tools%20and%20Methodologies%20327a00ae5c6f4a5b8a3248f213b82548/PHP%20df6088fab84f466492e14c76d6751576.md)
 
 [SQL Commands](Tools%20and%20Methodologies%20327a00ae5c6f4a5b8a3248f213b82548/SQL%20Commands%20446f9e0860f843d9a216a305d1d4f00d.md)
+
+[Searching for Entry Points](Tools%20and%20Methodologies%20327a00ae5c6f4a5b8a3248f213b82548/Searching%20for%20Entry%20Points%2016da982c8a864855bcc1b0383ec72a2d.md)
