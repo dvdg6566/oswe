@@ -1,39 +1,48 @@
 import sqlite3
 import argparse
 import os
+import re
+
+# Reference: https://stackoverflow.com/a/58138810
+def escapeString(s):
+	s = s.replace("\"", "\"\"")
+	s = s.replace("\'", "\'\'")
+	return s
 
 class sqlDB(object):
 	"""docstring for sqlDB"""
 	def __init__(self, database):
-		self.conn = self.create_connection(database)
+		self.database = database
 		
-	def create_connection(self, db_file):
+	def create_connection(self):
 		conn = None
 		try:
-			conn = sqlite3.connect(db_file)
-		except Error as e:
+			conn = sqlite3.connect(self.database)
+		except Exception as e:
 			print(e)
 		return conn
 
 	def create_db(self):
+		conn = self.create_connection()
 		create_table = ("CREATE TABLE IF NOT EXISTS content(\n"
 		"id integer PRIMARY KEY,\n"
 		"location text NOT NULL,\n"
 		"content blob);")
 		try:
-			c = self.conn.cursor()
+			c = conn.cursor()
 			c.execute(create_table)
-		except Error as e:
+		except Exception as e:
 			print(e)
 
 	def get_content(self, args):
+		conn = self.create_connection()
 		location = args[0]
 		print(f"Querying data with key {location}")
 		command = ("SELECT location,content from content\n"
 		f"WHERE location=\"{location}\"")
 
 		try:
-			c = self.conn.cursor()
+			c = conn.cursor()
 			c.execute(command)
 			res = c.fetchall()
 			res = [i[1] for i in res]
@@ -44,31 +53,36 @@ class sqlDB(object):
 				for r in res:
 					print(r)
 			return res
-		except Error as e:
+		except Exception as e:
 			print(e)
 
 	def insert_content(self, args):
+		conn = self.create_connection()
 		location = args[0]
 		content = args[1]
+
+		content = escapeString(content)
+		location = escapeString(location)
+
 		print(f"Inserting with location: {location}")
 		command = ("INSERT INTO content\n"
-		"(location, content) VALUES"
-		f"(\"{location}\", \"{content}\")")
-		print(command)
+		"(location, content) VALUES")
+		command += "(\"" + location + "\",\"" + content + "\")"
 
 		try:
-			c = self.conn.cursor()
+			c = conn.cursor()
 			c.execute(command)
-			self.conn.commit()
-		except Error as e:
+			conn.commit()
+		except Exception as e:
 			print(e)
 
 	def get_locations(self):
+		conn = self.create_connection()
 		print("Listing locations.....")
 		command = ("SELECT location FROM content")
 
 		try:
-			c = self.conn.cursor()
+			c = conn.cursor()
 			c.execute(command)
 			res = c.fetchall()
 			res = [i[0] for i in res]
@@ -79,7 +93,7 @@ class sqlDB(object):
 				for r in res:
 					print(r)
 			return res
-		except Error as e:
+		except Exception as e:
 			print(e)
 
 def main():
@@ -94,7 +108,7 @@ def main():
 	parser.add_argument('--content','-C')
 	args = parser.parse_args()
 
-	database = r"sqlite.db"
+	database = r"html_pages.db"
 	db_obj = sqlDB(database)
 
 	print()

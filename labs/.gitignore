@@ -2,3 +2,5 @@
 source/
 src/
 ysoserial-all.jar
+key.pem
+cert.pem

