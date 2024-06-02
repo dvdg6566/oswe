@@ -5,3 +5,4 @@ ysoserial-all.jar
 key.pem
 cert.pem
 export-*/
+__pycache__/
