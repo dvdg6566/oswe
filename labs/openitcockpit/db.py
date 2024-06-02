@@ -108,7 +108,7 @@ def main():
 	parser.add_argument('--content','-C')
 	args = parser.parse_args()
 
-	database = r"html_pages.db"
+	database = r"cookies.db"
 	db_obj = sqlDB(database)
 
 	print()

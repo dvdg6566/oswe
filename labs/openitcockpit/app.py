@@ -26,13 +26,13 @@ def save_page():
 	html_pages.insert_content((url, content))
 	return "OK"
 
-@app.route ('/save_cookie', methods=['POST'])
-def save_cookie():
+@app.route ('/save_cookies', methods=['POST'])
+def save_cookies():
 	if 'name' not in request.form.keys() or 'value' not in request.form.keys():
 		return "Invalid save cookie request", 400
 	name = request.form['name']
 	value = request.form['value']
-	html_pages.insert_content((name, value))
+	cookies.insert_content((name, value))
 	return "OK"
 
-app.run(host='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'))
+app.run(host='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'), debug=True)
