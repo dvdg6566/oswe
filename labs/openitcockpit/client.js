@@ -255,7 +255,7 @@ function addLoadingSpinner() {
 
   setTimeout(() => {
     container.removeChild(spinnerContainer);
-  }, 5000);
+  }, 4000);
 }
 
 // Call the function to add the spinner
