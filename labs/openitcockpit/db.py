@@ -37,7 +37,7 @@ class sqlDB(object):
 	def get_content(self, args):
 		conn = self.create_connection()
 		location = args[0]
-		print(f"Querying data with key {location}")
+		# print(f"Querying data with key {location}")
 		command = ("SELECT location,content from content\n"
 		f"WHERE location=\"{location}\"")
 
@@ -46,12 +46,10 @@ class sqlDB(object):
 			c.execute(command)
 			res = c.fetchall()
 			res = [i[1] for i in res]
-			if len(res) == 0:
-				print("No items found!")
-			else:
-				print("Printing results....")
-				for r in res:
-					print(r)
+			# if len(res) == 0:
+			# 	print("No items found!")
+			# else:
+			# 	print("Printing results....")
 			return res
 		except Exception as e:
 			print(e)
@@ -64,7 +62,7 @@ class sqlDB(object):
 		content = escapeString(content)
 		location = escapeString(location)
 
-		print(f"Inserting with location: {location}")
+		# print(f"Inserting with location: {location}")
 		command = ("INSERT INTO content\n"
 		"(location, content) VALUES")
 		command += "(\"" + location + "\",\"" + content + "\")"
@@ -78,7 +76,7 @@ class sqlDB(object):
 
 	def get_locations(self):
 		conn = self.create_connection()
-		print("Listing locations.....")
+		# print("Listing locations.....")
 		command = ("SELECT location FROM content")
 
 		try:
@@ -86,12 +84,12 @@ class sqlDB(object):
 			c.execute(command)
 			res = c.fetchall()
 			res = [i[0] for i in res]
-			if len(res) == 0:
-				print("No items found!")
-			else:
-				print("Printing results....")
-				for r in res:
-					print(r)
+			# if len(res) == 0:
+			# 	print("No items found!")
+			# else:
+			# 	print("Printing results....")
+			# 	for r in res:
+			# 		print(r)
 			return res
 		except Exception as e:
 			print(e)
