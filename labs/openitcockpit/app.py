@@ -5,9 +5,9 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)
 
-html_pages = sqlDB('html_pages.db')
-cookies = sqlDB('cookies.db')
-credentials = sqlDB('credentials.db')
+html_pages = sqlDB('db/html_pages.db')
+cookies = sqlDB('db/cookies.db')
+credentials = sqlDB('db/credentials.db')
 html_pages.create_db()
 cookies.create_db()
 credentials.create_db()
