@@ -13,16 +13,20 @@ def check_url(url):
 	}
 
 	r = requests.post(target,data=json.dumps(data),headers=headers)
-
-	if r.status_code == 403:
-		if debug: print("Resource found at url",url)
+	text = r.text
+	elapsed = r.elapsed.total_seconds()
+	if elapsed > 30:
+		return False
+	elif "You don't have permission" in text:
+		print("Port open!")
 		return True
-	elif r.status_code == 500:
-		if debug: print("Resource not found at url", url)
+	elif "ECONNREFUSED" in text: 
+		return False
+	elif "getaddrinfo" in text:
 		return False
 	else:
-		print("An error has occured")
-		return False
+		print("Error")
+		print(r.text)
 
 def check_ip(ip):
 	target = "http://apigateway:8000/files/import"
@@ -33,7 +37,6 @@ def check_ip(ip):
 		"url": f"http://{ip}"
 	}
 	r = requests.post(target,data=json.dumps(data),headers=headers)
-	# print(r.text)
 	text = r.text
 	elapsed = r.elapsed.total_seconds()
 	

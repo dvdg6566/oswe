@@ -1,0 +1,9 @@
+/
+/render
+/v1/render
+/v2/render
+/v3/render
+/api/render
+/api/v1/render
+/api/v2/render
+/api/v3/render

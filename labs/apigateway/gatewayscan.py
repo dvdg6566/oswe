@@ -10,13 +10,15 @@ print()
 A = []
 
 # check_ip("172.16.16.1")
-for a in range(16,32):
-	for b in range(1,256):
-		ip = f"172.{a}.{b}.1"
+# for a in range(16,32):
+# 	for b in range(1,256):
+# 		ip = f"172.{a}.{b}.1"
 
-		res = check_ip(ip)
-		if res:
-			print(f"{ip}\tOPEN")
-			A.append(ip)
-		else:
-			print(f"{ip}\tCLOSED")
+for i in range(1,256):
+	ip = f"172.16.16.{i}"
+	res = check_ip(ip)
+	if res:
+		print(f"{ip}\tOPEN")
+		A.append(ip)
+	else:
+		print(f"{ip}\tCLOSED")

