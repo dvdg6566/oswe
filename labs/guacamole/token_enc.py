@@ -18,7 +18,7 @@ def decrypt(s):
 	obj = json.loads(a)
 	encoded_iv = obj['iv']
 	encoded_value = obj['value']
-	print(encoded_value)
+
 	iv = base64.b64decode(encoded_iv)
 	ciphertext = base64.b64decode(encoded_value)
 
@@ -28,6 +28,7 @@ def decrypt(s):
 
 	decipher = AES.new(crypt['key'].encode(), 2, iv)
 	pltext = decipher.decrypt(ciphertext).decode()
+	print(pltext)
 	while pltext[-1] != '}': pltext = pltext[:-1] # Remove trailing characters behind a }
 	obj = json.loads(pltext)
 
@@ -36,34 +37,41 @@ def decrypt(s):
 def encrypt(obj):
 	crypt = get_crypt_key()
 
-	iv = token_bytes(16)
+	encoded_iv = "KI12UmkR4uk5VM6MxLpw0w=="
+	iv = base64.b64decode(encoded_iv)
+	# iv = token_bytes(16)
+
 	cipher = AES.new(crypt['key'].encode(), 2, iv)
 
 	pltext = json.dumps(obj)
+	print(pltext)
 	padded = pad(pltext.encode(), cipher.block_size)
 	crypted = cipher.encrypt(padded)
 	
 	encoded_value = base64.b64encode(crypted).decode()
 	encoded_iv = base64.b64encode(iv).decode()
+	# encoded_iv = "TNBtcWT0g0qtYqqccQNbOA=="
 
 	obj = {
 		'iv': encoded_iv,
 		'value': encoded_value
 	}
+	print(obj)
 	
 	obj_string = json.dumps(obj)
 	s = base64.b64encode(obj_string.encode()).decode()
+	# s = base64.urlsafe_b64encode(obj_string.encode()).decode()
 
 	return s
 
 if __name__ == '__main__':
-	obj = decrypt("eyJpdiI6ImpDOHpHSi80YmwwZmRUTEVWUWFuc3c9PSIsInZhbHVlIjoiTURPRUh0c0F3Y211VThCUG1ldnhBa1B4Y2tpYnFtNkhFWno5bU9oaWZOdG1uaStuRFVGYUVwUHNya2NveGNJUTlKd0hXMDNPVmtGaEdMaHlvU29kUTJuaUVib1FvbFpwMnQrbk84ZE90eUVsSzJtNjVVN3lTWmpDWUpVSzVmTm5RUWFrckEyQjh0aXV3dnBUd2djUFZJVVpQWFZkRmpPOGN0RUxCTGZmbEFzK1k1OXJxWjZ0MHpyZ1p2UWhkSVA4c0toenAxalAveE54Q2ozOEZ2bjd2NTN6WnNRY2dGOHMwZjB3SGRVTFRwOXBCVkdmcVhRaGlNWFFGd1dYVU80RytrTjBtYXZDYzdwSXZtazNETGE4WXB2V3QzS01MQW5HQ1JoMFBtbDk3cmhpc3hZMzJ3S0VNM1JxWk9tSWZVcmtCdjVGRFhYZ1JHOU5CSmo4NzRSbWFSYUF2RlRCSmNmL2xML29aSUFHTXZLaWlBZXpFZHdOQU1Hdm9zRktBakN6eDR3L2ZRK29Ic0ttd1hVUFl1VDVjdU5pNlhuK3JHVm9jRVVPSWVQRFpDdFJqbXpDK2ZJRzdvTjNQSFZkalBCQitMUWx1WGNzMVd4QUJFd0hqbENOeUE9PSJ9==")
+	obj = decrypt("eyJpdiI6IktJMTJVbWtSNHVrNVZNNk14THB3MHc9PSIsInZhbHVlIjoiZ0VVQjh4Q3RHdTF3UVFJZGtSTTFKSkFhUTcyU1lHc3cwTjUzUlR0ZmdYR3Jod3d2VE5BVnBtb2pNR1JiQWM3TkluMm11dGVjcXc2WEtBR1VmaWZyaElDTHMwbkl4MWlQbzR6TUM5ajlqdm5Qa1NWL0sveW10NmZOWG5mbk15b0Noek5vVU1CT0xuRzdyZFdTc1d4WkNMYUdZM1BXVkMwZkVUcjF6VzJ6Q3JGTWtKOHlNd1pvbGh3MG5YMjRKdkYrQXFBYjRwU3NEcFV4akdpQ2NMeXJrakxIZ2hZNS9Kb2xZMWFZYjN1TXEzN3BFYjhwOERKdnNkZE9vSlpYdWRKeHVOUW9SbWtpa09qNis0cTVzOFRMQnVoQTlYa1ZXQ3lvSmZHK0V5dUdBSDJURGZiaVpXNkoxQ1h1a0FqVGI0aWVaek9IVjNNaVdld0V1TS8wUnZSa2EwNEkzRlpPQ1pGNEZncnpqZzlZYUdCdlBYbENzK1cxUFlGTy9aWnRWM3hQIn0=")
 
-	print(obj)
-	obj["connection"]["settings"]["__proto__"] = {
-		"toString":"placeholder"
-	}
-	pprint(obj)
+	# print(obj)
+	# obj["connection"]["settings"]["__proto__"] = {
+	# 	"toString":"placeholder"
+	# }
+	# pprint(obj)
 
 	s = encrypt(obj)
 	print()

