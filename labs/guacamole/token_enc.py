@@ -37,7 +37,6 @@ def encrypt(obj):
 	crypt = get_crypt_key()
 
 	iv = token_bytes(16)
-
 	cipher = AES.new(crypt['key'].encode(), 2, iv)
 
 	pltext = json.dumps(obj)
@@ -51,11 +50,9 @@ def encrypt(obj):
 		'iv': encoded_iv,
 		'value': encoded_value
 	}
-	print(obj)
 	
 	obj_string = json.dumps(obj)
 	s = base64.b64encode(obj_string.encode()).decode()
-	# s = base64.urlsafe_b64encode(obj_string.encode()).decode()
 
 	return s
 
