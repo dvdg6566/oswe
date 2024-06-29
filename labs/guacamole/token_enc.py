@@ -28,7 +28,6 @@ def decrypt(s):
 
 	decipher = AES.new(crypt['key'].encode(), 2, iv)
 	pltext = decipher.decrypt(ciphertext).decode()
-	print(pltext)
 	while pltext[-1] != '}': pltext = pltext[:-1] # Remove trailing characters behind a }
 	obj = json.loads(pltext)
 
@@ -37,20 +36,16 @@ def decrypt(s):
 def encrypt(obj):
 	crypt = get_crypt_key()
 
-	encoded_iv = "KI12UmkR4uk5VM6MxLpw0w=="
-	iv = base64.b64decode(encoded_iv)
-	# iv = token_bytes(16)
+	iv = token_bytes(16)
 
 	cipher = AES.new(crypt['key'].encode(), 2, iv)
 
 	pltext = json.dumps(obj)
-	print(pltext)
 	padded = pad(pltext.encode(), cipher.block_size)
 	crypted = cipher.encrypt(padded)
 	
 	encoded_value = base64.b64encode(crypted).decode()
 	encoded_iv = base64.b64encode(iv).decode()
-	# encoded_iv = "TNBtcWT0g0qtYqqccQNbOA=="
 
 	obj = {
 		'iv': encoded_iv,
