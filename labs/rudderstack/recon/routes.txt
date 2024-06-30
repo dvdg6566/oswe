@@ -1,0 +1,57 @@
+/home/student/rudder-server-1.2.5/cmd/devtool/commands/event.go
+  60,24: 	url := fmt.Sprintf("%s/v1/batch", c.String("endpoint"))
+
+/home/student/rudder-server-1.2.5/config/backend-config/namespace_config.go
+  84,35: 	u.Path = fmt.Sprintf("/data-plane/v1/namespaces/%s/config", nc.Namespace)
+
+/home/student/rudder-server-1.2.5/gateway/gateway.go
+  989,24: 	uri := fmt.Sprintf(`%s/v1/warehouse/pending-events?triggerUpload=true`, misc.GetWarehouseURL())
+  1432,21: 	srvMux.HandleFunc("/v1/batch", gateway.webBatchHandler).Methods("POST")
+  1433,21: 	srvMux.HandleFunc("/v1/identify", gateway.webIdentifyHandler).Methods("POST")
+  1434,21: 	srvMux.HandleFunc("/v1/track", gateway.webTrackHandler).Methods("POST")
+  1435,21: 	srvMux.HandleFunc("/v1/page", gateway.webPageHandler).Methods("POST")
+  1436,21: 	srvMux.HandleFunc("/v1/screen", gateway.webScreenHandler).Methods("POST")
+  1437,21: 	srvMux.HandleFunc("/v1/alias", gateway.webAliasHandler).Methods("POST")
+  1438,21: 	srvMux.HandleFunc("/v1/merge", gateway.webMergeHandler).Methods("POST")
+  1439,21: 	srvMux.HandleFunc("/v1/group", gateway.webGroupHandler).Methods("POST")
+  1442,21: 	srvMux.HandleFunc("/v1/import", gateway.webImportHandler).Methods("POST")
+  1443,21: 	srvMux.HandleFunc("/v1/audiencelist", gateway.webAudienceListHandler).Methods("POST")
+  1444,27: 	srvMux.HandleFunc("/pixel/v1/track", gateway.pixelTrackHandler).Methods("GET")
+  1445,27: 	srvMux.HandleFunc("/pixel/v1/page", gateway.pixelPageHandler).Methods("GET")
+  1446,21: 	srvMux.HandleFunc("/v1/webhook", gateway.webhookHandler.RequestHandler).Methods("POST", "GET")
+  1447,28: 	srvMux.HandleFunc("/beacon/v1/batch", gateway.beaconBatchHandler).Methods("POST")
+  1448,21: 	srvMux.PathPrefix("/v1/warehouse").Handler(http.HandlerFunc(warehouseHandler)).Methods("GET", "POST")
+  1462,21: 	srvMux.HandleFunc("/v1/pending-events", WithContentType("application/json; charset=utf-8", gateway.pendingEventsHandler)).Methods("POST")
+  1463,21: 	srvMux.HandleFunc("/v1/failed-events", WithContentType("application/json; charset=utf-8", gateway.fetchFailedEventsHandler)).Methods("POST")
+  1464,21: 	srvMux.HandleFunc("/v1/warehouse/pending-events", gateway.whProxy.ServeHTTP).Methods("POST")
+  1465,21: 	srvMux.HandleFunc("/v1/clear-failed-events", gateway.clearFailedEventsHandler).Methods("POST")
+  1471,21: 	srvMux.PathPrefix("/v1/job-status").Handler(WithContentType("application/json; charset=utf-8", rsourcesHandler.ServeHTTP))
+  1508,21: 	srvMux.HandleFunc("/v1/pending-events", gateway.pendingEventsHandler).Methods("POST")
+
+/home/student/rudder-server-1.2.5/router/batchrouter/batchrouter.go
+  1126,24: 	uri := fmt.Sprintf(`%s/v1/process`, warehouseURL)
+
+/home/student/rudder-server-1.2.5/services/controlplane/features/client.go
+  95,35: 		url = fmt.Sprintf("%s/data-plane/v1/namespaces/%s/settings", c.url, c.identity.ID())
+  97,35: 		url = fmt.Sprintf("%s/data-plane/v1/workspaces/%s/settings", c.url, c.identity.ID())
+
+/home/student/rudder-server-1.2.5/services/rsources/http/http.go
+  19,21: 	srvMux.HandleFunc("/v1/job-status/{job_run_id}", h.getStatus).Methods("GET")
+  20,21: 	srvMux.HandleFunc("/v1/job-status/{job_run_id}", h.delete).Methods("DELETE")
+  21,21: 	srvMux.HandleFunc("/v1/job-status/{job_run_id}/failed-records", h.failedRecords).Methods("GET")
+
+/home/student/rudder-server-1.2.5/warehouse/testhelper/events.go
+  527,41: 	url := fmt.Sprintf("http://localhost:%s/v1/%s", "8080", eventType)
+  585,41: 	url := fmt.Sprintf("http://localhost:%s/v1/%s", "8080", path)
+  636,41: 	url := fmt.Sprintf("http://localhost:%s/v1/%s", "8080", "pending-events")
+
+/home/student/rudder-server-1.2.5/warehouse/testhelper/setup.go
+  550,24: 	url := fmt.Sprintf(`%s/v1/setConfig`, misc.GetWarehouseURL())
+
+/home/student/rudder-server-1.2.5/warehouse/warehouse.go
+  2012,20: 			mux.HandleFunc("/v1/process", processHandler)
+  2014,20: 			mux.HandleFunc("/v1/warehouse/pending-events", pendingEventsHandler)
+  2016,20: 			mux.HandleFunc("/v1/warehouse/trigger-upload", triggerUploadHandler)
+  2018,20: 			mux.HandleFunc("/v1/setConfig", setConfigHandler)
+  2021,20: 			mux.HandleFunc("/v1/warehouse/jobs", asyncWh.AddWarehouseJobHandler)
+  2022,20: 			mux.HandleFunc("/v1/warehouse/jobs/status", asyncWh.StatusWarehouseJobHandler)
