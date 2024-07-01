@@ -1,0 +1,27 @@
+/home/student/Documents/answers/src/com/offsec/awae/answers/AdminController.java
+  80,13: /*     */   @GetMapping({"/admin/users"})
+
+/home/student/Documents/answers/src/com/offsec/awae/answers/MainController.java
+  48,13: /*     */   @GetMapping({"/"})
+  67,13: /*     */   @GetMapping({"/index"})
+  103,13: /*     */   @GetMapping({"/search"})
+  130,13: /*     */   @GetMapping({"/categories"})
+  172,13: /*     */   @GetMapping({"/category/{id}/delete"})
+  199,13: /*     */   @GetMapping({"/question"})
+  266,13: /*     */   @GetMapping({"/error"})
+  272,13: /*     */   @GetMapping({"/thread/{id}"})
+  298,13: /*     */   @GetMapping({"/profile/{id}"})
+
+/home/student/Documents/answers/src/com/offsec/awae/answers/ModerateController.java
+  30,12: /*    */   @GetMapping({"/moderate"})
+
+/home/student/Documents/answers/src/com/offsec/awae/answers/UserController.java
+  50,13: /*     */   @GetMapping({"/login"})
+  101,13: /*     */   @GetMapping({"/logout"})
+  151,13: /*     */   @GetMapping({"/magicLink/{token}"})
+  182,13: /*     */   @GetMapping({"/user/changePassword"})
+  231,13: /*     */   @GetMapping({"/user/{id}"})
+
+/home/student/Documents/answers/src/com/offsec/awae/answers/api/ApiController.java
+  16,12: /*    */   @GetMapping({"/api", "/api/"})
+  26,12: /*    */   @GetMapping({"/api/health"})
